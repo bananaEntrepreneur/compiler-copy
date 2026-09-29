@@ -45,6 +45,7 @@ Operator (optional): ?
 Operator (range): ..
 Operator (range): ...
 Operator (switch prong): =>
+Operator (arrow): ->
 Operator (wrapping): +%
 Operator (wrapping): -%
 Operator (wrapping): *%

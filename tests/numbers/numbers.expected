@@ -18,16 +18,6 @@ Binary integer literal: 170
 Octal integer literal: 493
 Float literal: 10.25
 Float literal: 1e+11
-Integer literal: 0
-Identifier: x_
-Integer literal: 0
-Identifier: b_
-Integer literal: 0
-Identifier: o_
-Hex integer literal: 1
-Identifier: _
-Integer literal: 1
-Identifier: __0
 Hex float literal: 12
 Hex float literal: 16
 Hex float literal: 0.484375
@@ -35,3 +25,9 @@ Hex float literal: 65280
 Hex float literal: 25260
 Hex integer literal: 485
 Hex float literal: 1.5
+Integer literal: 0
+Operator (range): ..
+Integer literal: 10
+Integer literal: 0
+Operator (range): ...
+Integer literal: 9

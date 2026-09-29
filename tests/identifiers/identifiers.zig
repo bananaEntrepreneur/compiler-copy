@@ -18,3 +18,14 @@ u8
 usize
 isize
 _
+constant
+iffy
+format
+fnord
+variable
+boolean
+types
+_private
+snake_case_1
+UPPER_CASE
+x1

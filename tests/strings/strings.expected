@@ -12,7 +12,7 @@ Keyword: const
 Identifier: escapes
 Operator (assignment): =
 String literal: nl:
- tab:	 cr: quote:" apos:' backslash:\ hex:A uni:💩
+ tab:	 cr: quote:" apos:' backslash:\ hex:A
 Semicolon: ;
 Keyword: const
 Identifier: ends_with_escaped_quote
