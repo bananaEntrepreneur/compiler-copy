@@ -1,65 +1,52 @@
 Keyword: const
-Identifier: a
-Operator (assignment): =
-Integer literal: 1
-Semicolon: ;
-Keyword: const
 Identifier: b
 Operator (assignment): =
-Line 2: unexpected character: #
-Semicolon: ;
-Keyword: const
-Identifier: c
-Operator (assignment): =
-Line 3: unexpected character: $
-Identifier: x
-Semicolon: ;
-Keyword: const
-Identifier: d
-Operator (assignment): =
-Line 4: unexpected character: `
-Integer literal: 2
-Line 4: unexpected character: `
-Semicolon: ;
-Keyword: const
-Identifier: ok_str
-Operator (assignment): =
-String literal: fine
-Semicolon: ;
-Keyword: const
-Identifier: ok_char
-Operator (assignment): =
-Char literal: a
-Semicolon: ;
-Keyword: const
-Identifier: ok_quoted
-Operator (assignment): =
-Quoted identifier: good
+error: unexpected character: '#' in line: 1
 Semicolon: ;
 Keyword: const
 Identifier: bad_str
 Operator (assignment): =
-Line 8: unterminated string literal
+error: unterminated string literal in line: 2
 Keyword: const
 Identifier: bad_char
 Operator (assignment): =
-Line 9: character literal must hold exactly one character
+error: expected single quote ('), found 'b' in line: 3
+Semicolon: ;
+Keyword: const
+Identifier: empty_char
+Operator (assignment): =
+error: empty character literal in line: 4
 Semicolon: ;
 Keyword: const
 Identifier: no_close
 Operator (assignment): =
-Line 10: unterminated character literal
+error: unterminated character literal in line: 5
 Keyword: const
 Identifier: bad_quoted
 Operator (assignment): =
-Line 11: unterminated quoted identifier
-Comment: // don't touch apostrophes in comments
+error: unterminated quoted identifier in line: 6
 Keyword: const
-Identifier: in_str
+Identifier: str_tab
 Operator (assignment): =
-String literal: it's fine
+error: string literal contains invalid byte: '\t' in line: 7
+Semicolon: ;
+Keyword: const
+Identifier: char_tab
+Operator (assignment): =
+error: character literal contains invalid byte: '\t' in line: 8
+Semicolon: ;
+Keyword: const
+Identifier: x
+Operator (assignment): =
+Integer literal: 1
+Semicolon: ;
+error: comment contains invalid byte: '\t' in line: 9
+Keyword: const
+Identifier: ml_tab
+Operator (assignment): =
+error: string literal contains invalid byte: '\t' in line: 11
 Semicolon: ;
 Keyword: const
 Identifier: at_eof
 Operator (assignment): =
-Line 14: unterminated string literal
+error: unterminated string literal in line: 13

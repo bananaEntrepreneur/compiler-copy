@@ -1,16 +1,18 @@
-Line 1: invalid number literal: 0x_
-Line 2: invalid number literal: 0b_
-Line 3: invalid number literal: 0o_
-Line 4: invalid number literal: 0x1_
-Line 5: invalid number literal: 1__0
-Line 6: invalid number literal: 1_
-Line 7: invalid number literal: 0b2
-Line 8: invalid number literal: 0o8
-Line 9: invalid number literal: 09
-Line 10: invalid number literal: 0x1g
-Line 11: invalid number literal: 1.5x
-Line 12: invalid number literal: 1._5
-Line 13: invalid number literal: 1e_5
-Line 14: invalid number literal: 1e5.0
-Line 15: invalid number literal: 0x.p1
-Line 16: invalid number literal: 0X10
+error: number '09' has leading zero in line: 1
+error: base prefix must be lowercase in line: 2
+error: expected a digit after base prefix in line: 3
+error: invalid base for float literal in line: 4
+error: repeated digit separator in line: 5
+error: expected digit before digit separator in line: 6
+error: invalid digit '2' for binary base in line: 7
+error: invalid digit 'x' for decimal base in line: 8
+error: invalid digit 'a' in exponent in line: 9
+error: duplicate exponent in line: 10
+error: expected digit before exponent in line: 11
+error: expected digit before '.' in line: 12
+error: expected digit after 'e' in line: 13
+error: trailing digit separator in line: 14
+error: sign '+' cannot follow digit 'e' in hex base in line: 15
+error: unexpected period after exponent in line: 16
+error: unexpected period after exponent in line: 17
+error: expected a digit after base prefix in line: 18
