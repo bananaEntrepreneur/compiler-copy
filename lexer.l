@@ -16,9 +16,10 @@ static double float_value(const char* text);
 static const char* literal_kind(int state);
 %}
 
-    /* Only DEC numbers can not start with zero */
+    /* Only DEC numbers can not start with zero. DIGITS (fraction, exponent) may. */
 
 DEC 0|[1-9](_?[0-9])*
+DIGITS [0-9](_?[0-9])*
 HEX [0-9a-fA-F](_?[0-9a-fA-F])*
 BIN [01](_?[01])*
 OCT [0-7](_?[0-7])*
@@ -94,7 +95,7 @@ OCT [0-7](_?[0-7])*
     /* Numbers */
     /* Hex float may contain either a fractional part, or an exponential part, or both simultaneously.*/
     /* Examples:  0x1.1p+1, 0x1.1, 0x11p+10, 0x1.1p10 */
-0x{HEX}(\.{HEX}([pP][+-]?{DEC})?|[pP][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
+0x{HEX}(\.{HEX}([pP][+-]?{DIGITS})?|[pP][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
 
 0x{HEX} { unsigned long long v = int_value(yytext + 2, 16); std::cout << "Hex integer literal: " << v << '\n'; }
 
@@ -104,7 +105,7 @@ OCT [0-7](_?[0-7])*
 
     /* DEC float may contain either a fractional part, or an exponential part, or both simultaneously.*/
     /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10 */
-{DEC}(\.{DEC}([eE][+-]?{DEC})?|[eE][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
+{DEC}(\.{DIGITS}([eE][+-]?{DIGITS})?|[eE][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
 
 {DEC} { unsigned long long v = int_value(yytext, 10); std::cout << "Integer literal: " << v << '\n'; }
 
@@ -164,10 +165,10 @@ OCT [0-7](_?[0-7])*
 "true" { std::cout << "Boolean literal(true): " << 1 << '\n'; }
 "false" { std::cout << "Boolean literal(false): " << 0 << '\n'; }
 
-    /* Integer types. [1,65535] with a prohibition of leading zeros. */
+    /* Integer types. [0,65535] with a prohibition of leading zeros. */
 
-u([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Unsigned integer type: " << yytext << '\n'; }
-i([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Signed integer type: " << yytext << '\n'; }
+u(0|[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Unsigned integer type: " << yytext << '\n'; }
+i(0|[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Signed integer type: " << yytext << '\n'; }
 
     /* Float types */
 
@@ -302,6 +303,7 @@ f128 { std::cout << "Float type: " << yytext << '\n'; }
 "..." { std::cout << "Operator (range): " << yytext << '\n'; }
 ".." { std::cout << "Operator (range): " << yytext << '\n'; }
 "=>" { std::cout << "Operator (switch prong): " << yytext << '\n'; }
+"->" { std::cout << "Operator (arrow): " << yytext << '\n'; }
 "||" { std::cout << "Operator (error set merge): " << yytext << '\n'; }
 "." { std::cout << "Operator (member): " << yytext << '\n'; }
 "?" { std::cout << "Operator (optional): " << yytext << '\n'; }

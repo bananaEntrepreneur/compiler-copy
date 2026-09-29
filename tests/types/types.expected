@@ -36,6 +36,7 @@ C longlong type: c_longlong
 C ulonglong type: c_ulonglong
 C longdouble type: c_longdouble
 Unsigned integer type: u0
+Signed integer type: i0
 Unsigned integer type: u7
 Signed integer type: i3
 Unsigned integer type: u256

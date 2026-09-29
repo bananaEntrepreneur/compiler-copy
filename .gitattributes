@@ -1,0 +1,2 @@
+* text eol=lf
+tests/**/*.expected -text

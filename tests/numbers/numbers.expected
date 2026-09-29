@@ -25,6 +25,12 @@ Hex float literal: 65280
 Hex float literal: 25260
 Hex integer literal: 485
 Hex float literal: 1.5
+Float literal: 1.05
+Float literal: 0.0015
+Float literal: 100000
+Float literal: 1.5e-07
+Hex float literal: 8
+Hex float literal: 0.75
 Integer literal: 0
 Operator (range): ..
 Integer literal: 10
