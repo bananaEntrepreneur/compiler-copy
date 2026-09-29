@@ -10,6 +10,11 @@
 static std::string ml;
 static std::string literal;
 static int literal_line;
+static int literal_chars; // code points in literal, for character literals
+
+static void append_escape(char c);
+static void append_code_point(unsigned long cp);
+static void unicode_escape(const char* text, int state);
 
 static unsigned long long int_value(const char* text, int base);
 static double float_value(const char* text);
@@ -23,6 +28,7 @@ DIGITS [0-9](_?[0-9])*
 HEX [0-9a-fA-F](_?[0-9a-fA-F])*
 BIN [01](_?[01])*
 OCT [0-7](_?[0-7])*
+NUMTAIL ([_a-zA-Z0-9]|[eEpP][+-])*
 
 %%
 
@@ -32,12 +38,20 @@ OCT [0-7](_?[0-7])*
 
     /* Character literal */
 
-' { literal.clear(); literal_line = yylineno; BEGIN(CHR); }
+' { literal.clear(); literal_chars = 0; literal_line = yylineno; BEGIN(CHR); }
 
-<CHR>[^\\'\n] { literal += yytext; }
+    /* One byte at a time; UTF-8 continuation bytes do not start a new code point */
+
+<CHR>[^\\'\n] {
+    literal += yytext;
+
+    if ((yytext[0] & 0xC0) != 0x80) {
+        ++literal_chars;
+    }
+}
 
 <CHR>' {
-    if (literal.size() == 1) {
+    if (literal_chars == 1) {
         std::cout << "Char literal: " << literal << '\n';
     } else {
         std::cerr << "Line " << literal_line << ": character literal must hold exactly one character\n";
@@ -58,17 +72,34 @@ OCT [0-7](_?[0-7])*
 
 @\" { literal.clear(); literal_line = yylineno; BEGIN(QIDENT); }
 
-<QIDENT>\" { std::cout << "Quoted identifier: " << literal << '\n'; BEGIN(INITIAL); }
+<QIDENT>\" {
+    if (literal.empty()) {
+        std::cerr << "Line " << literal_line << ": quoted identifier cannot be empty\n";
+    } else if (literal.find('\0') != std::string::npos) {
+        std::cerr << "Line " << literal_line << ": quoted identifier cannot contain null bytes\n";
+    } else {
+        std::cout << "Quoted identifier: " << literal << '\n';
+    }
+
+    BEGIN(INITIAL);
+}
 
     /* Escape sequences */
 
-<CHR,STR,QIDENT>\\n { literal += '\n'; }
-<CHR,STR,QIDENT>\\r { literal += '\r'; }
-<CHR,STR,QIDENT>\\t { literal += '\t'; }
-<CHR,STR,QIDENT>\\\\ { literal += '\\'; }
-<CHR,STR,QIDENT>\\' { literal += '\''; }
-<CHR,STR,QIDENT>\\\" { literal += '"'; }
-<CHR,STR,QIDENT>\\x[0-9a-fA-F]{2} { literal += (char)strtol(yytext + 2, nullptr, 16); }
+<CHR,STR,QIDENT>\\n { append_escape('\n'); }
+<CHR,STR,QIDENT>\\r { append_escape('\r'); }
+<CHR,STR,QIDENT>\\t { append_escape('\t'); }
+<CHR,STR,QIDENT>\\\\ { append_escape('\\'); }
+<CHR,STR,QIDENT>\\' { append_escape('\''); }
+<CHR,STR,QIDENT>\\\" { append_escape('"'); }
+    /* \xNN is a byte in a string, but the code point U+00NN in a character literal */
+
+<STR,QIDENT>\\x[0-9a-fA-F]{2} { append_escape((char)strtol(yytext + 2, nullptr, 16)); }
+<CHR>\\x[0-9a-fA-F]{2} { append_code_point(strtoul(yytext + 2, nullptr, 16)); }
+
+    /* Unicode escape: 1+ hex digits, the code point is stored as UTF-8 */
+
+<CHR,STR,QIDENT>\\u\{[0-9a-fA-F]+\} { unicode_escape(yytext, YY_START); }
 
     /* Other escape */
 
@@ -108,6 +139,14 @@ OCT [0-7](_?[0-7])*
 {DEC}(\.{DIGITS}([eE][+-]?{DIGITS})?|[eE][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
 
 {DEC} { unsigned long long v = int_value(yytext, 10); std::cout << "Integer literal: " << v << '\n'; }
+
+    /* Malformed number. Zig reads a number as a digit followed by letters, digits, '_',  */
+    /* a sign right after e/E/p/P and at most one '.' (not after a sign), then validates */
+    /* it. Anything longer than a valid literal above is one bad token: 0x_, 1__0, 0b2.  */
+    /* This includes 1.e5, 0x.8 and 5E0.0: zig compiles them (the last to 0), but the    */
+    /* grammar needs digits on both sides of the dot and no dot after the exponent.      */
+
+[0-9][_a-zA-Z0-9]*([eEpP][+-]{NUMTAIL}|\.([_a-zA-Z0-9]|[eEpP][+-]){NUMTAIL})? { std::cerr << "Line " << yylineno << ": invalid number literal: " << yytext << '\n'; }
 
     /* Keywords */
 
@@ -327,6 +366,53 @@ static const char* literal_kind(int state) {
         case QIDENT: return "quoted identifier";
         default:     return "string literal";
     }
+}
+
+/*! Append a character produced by a single-byte escape (\\n, \\x41, ...). */
+static void append_escape(char c) {
+    literal += c;
+    ++literal_chars;
+}
+
+/*! Check a \\u{...} escape and append its code point.
+ *  Values above U+10FFFF are rejected. Surrogate halves have no UTF-8
+ *  form, so Zig rejects them in strings; a character literal only holds
+ *  the number, so there they are accepted.
+ *  \param[in] text  the escape, \\u{...}.
+ *  \param[in] state current start condition, normally YY_START.
+ */
+static void unicode_escape(const char* text, int state) {
+    unsigned long long cp = strtoull(text + 3, nullptr, 16);
+
+    if (cp > 0x10FFFF || (state != CHR && cp >= 0xD800 && cp <= 0xDFFF)) {
+        std::cerr << "Line " << yylineno << ": invalid unicode code point: " << text << '\n';
+        return;
+    }
+
+    append_code_point(cp);
+}
+
+/*! Append one code point to the literal, encoded as UTF-8.
+ *  \param[in] cp code point, at most U+10FFFF.
+ */
+static void append_code_point(unsigned long cp) {
+    if (cp < 0x80) {
+        literal += (char)cp;
+    } else if (cp < 0x800) {
+        literal += (char)(0xC0 | (cp >> 6));
+        literal += (char)(0x80 | (cp & 0x3F));
+    } else if (cp < 0x10000) {
+        literal += (char)(0xE0 | (cp >> 12));
+        literal += (char)(0x80 | ((cp >> 6) & 0x3F));
+        literal += (char)(0x80 | (cp & 0x3F));
+    } else {
+        literal += (char)(0xF0 | (cp >> 18));
+        literal += (char)(0x80 | ((cp >> 12) & 0x3F));
+        literal += (char)(0x80 | ((cp >> 6) & 0x3F));
+        literal += (char)(0x80 | (cp & 0x3F));
+    }
+
+    ++literal_chars;
 }
 
 static std::string strip_underscores(const char* text) {

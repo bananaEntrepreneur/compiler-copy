@@ -50,6 +50,16 @@ Operator (assignment): =
 Char literal: A
 Semicolon: ;
 Keyword: const
+Identifier: unicode
+Operator (assignment): =
+Char literal: A
+Semicolon: ;
+Keyword: const
+Identifier: unicode_zeros
+Operator (assignment): =
+Char literal: z
+Semicolon: ;
+Keyword: const
 Identifier: in_string
 Operator (assignment): =
 String literal: it's fine
