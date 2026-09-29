@@ -126,7 +126,9 @@ NUMTAIL ([_a-zA-Z0-9]|[eEpP][+-])*
     /* Numbers */
     /* Hex float may contain either a fractional part, or an exponential part, or both simultaneously.*/
     /* Examples:  0x1.1p+1, 0x1.1, 0x11p+10, 0x1.1p10 */
-0x{HEX}(\.{HEX}([pP][+-]?{DIGITS})?|[pP][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
+    /* As in the compiler, one side of the dot may be empty: 0x.8, 0x1.p3 (the empty */
+    /* fraction needs an exponent, else '.' is the next token), but not both: 0x.p1  */
+0x({HEX}?\.{HEX}([pP][+-]?{DIGITS})?|{HEX}\.?[pP][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
 
 0x{HEX} { unsigned long long v = int_value(yytext + 2, 16); std::cout << "Hex integer literal: " << v << '\n'; }
 
@@ -135,16 +137,17 @@ NUMTAIL ([_a-zA-Z0-9]|[eEpP][+-])*
 0o{OCT} { unsigned long long v = int_value(yytext + 2, 8); std::cout << "Octal integer literal: " << v << '\n'; }
 
     /* DEC float may contain either a fractional part, or an exponential part, or both simultaneously.*/
-    /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10 */
-{DEC}(\.{DIGITS}([eE][+-]?{DIGITS})?|[eE][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
+    /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10, 1.e10 (empty fraction, as in the compiler) */
+{DEC}(\.{DIGITS}([eE][+-]?{DIGITS})?|\.?[eE][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
 
 {DEC} { unsigned long long v = int_value(yytext, 10); std::cout << "Integer literal: " << v << '\n'; }
 
     /* Malformed number. Zig reads a number as a digit followed by letters, digits, '_',  */
     /* a sign right after e/E/p/P and at most one '.' (not after a sign), then validates */
     /* it. Anything longer than a valid literal above is one bad token: 0x_, 1__0, 0b2.  */
-    /* This includes 1.e5, 0x.8 and 5E0.0: zig compiles them (the last to 0), but the    */
-    /* grammar needs digits on both sides of the dot and no dot after the exponent.      */
+    /* This includes 5E0.0 and 0x.p1: the compiler's number check lets them through, but */
+    /* std.fmt.parseFloat rejects them and AstGen hits `unreachable` (0 in a release     */
+    /* build of zig), so they are compiler bugs, not literals.                           */
 
 [0-9][_a-zA-Z0-9]*([eEpP][+-]{NUMTAIL}|\.([_a-zA-Z0-9]|[eEpP][+-]){NUMTAIL})? { std::cerr << "Line " << yylineno << ": invalid number literal: " << yytext << '\n'; }
 

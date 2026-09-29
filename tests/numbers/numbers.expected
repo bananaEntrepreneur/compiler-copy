@@ -31,6 +31,11 @@ Float literal: 100000
 Float literal: 1.5e-07
 Hex float literal: 8
 Hex float literal: 0.75
+Float literal: 100000
+Float literal: 1
+Hex float literal: 0.5
+Hex float literal: 8
+Hex float literal: 1
 Integer literal: 0
 Operator (range): ..
 Integer literal: 10
