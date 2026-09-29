@@ -36,6 +36,7 @@ c_longlong
 c_ulonglong
 c_longdouble
 u0
+i0
 u7
 i3
 u256

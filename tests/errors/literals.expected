@@ -1,0 +1,22 @@
+Keyword: const
+Line 1: quoted identifier cannot be empty
+Operator (assignment): =
+Integer literal: 1
+Semicolon: ;
+Keyword: const
+Line 2: quoted identifier cannot contain null bytes
+Operator (assignment): =
+Integer literal: 2
+Semicolon: ;
+Keyword: const
+Identifier: s
+Operator (assignment): =
+Line 3: invalid unicode code point: \u{110000}
+String literal: 
+Semicolon: ;
+Keyword: const
+Identifier: t
+Operator (assignment): =
+Line 4: invalid unicode code point: \u{D800}
+String literal: 
+Semicolon: ;

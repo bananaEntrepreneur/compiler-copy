@@ -10,18 +10,25 @@
 static std::string ml;
 static std::string literal;
 static int literal_line;
+static int literal_chars; // code points in literal, for character literals
+
+static void append_escape(char c);
+static void append_code_point(unsigned long cp);
+static void unicode_escape(const char* text, int state);
 
 static unsigned long long int_value(const char* text, int base);
 static double float_value(const char* text);
 static const char* literal_kind(int state);
 %}
 
-    /* Only DEC numbers can not start with zero */
+    /* Only DEC numbers can not start with zero. DIGITS (fraction, exponent) may. */
 
 DEC 0|[1-9](_?[0-9])*
+DIGITS [0-9](_?[0-9])*
 HEX [0-9a-fA-F](_?[0-9a-fA-F])*
 BIN [01](_?[01])*
 OCT [0-7](_?[0-7])*
+NUMTAIL ([_a-zA-Z0-9]|[eEpP][+-])*
 
 %%
 
@@ -31,12 +38,20 @@ OCT [0-7](_?[0-7])*
 
     /* Character literal */
 
-' { literal.clear(); literal_line = yylineno; BEGIN(CHR); }
+' { literal.clear(); literal_chars = 0; literal_line = yylineno; BEGIN(CHR); }
 
-<CHR>[^\\'\n] { literal += yytext; }
+    /* One byte at a time; UTF-8 continuation bytes do not start a new code point */
+
+<CHR>[^\\'\n] {
+    literal += yytext;
+
+    if ((yytext[0] & 0xC0) != 0x80) {
+        ++literal_chars;
+    }
+}
 
 <CHR>' {
-    if (literal.size() == 1) {
+    if (literal_chars == 1) {
         std::cout << "Char literal: " << literal << '\n';
     } else {
         std::cerr << "Line " << literal_line << ": character literal must hold exactly one character\n";
@@ -57,17 +72,34 @@ OCT [0-7](_?[0-7])*
 
 @\" { literal.clear(); literal_line = yylineno; BEGIN(QIDENT); }
 
-<QIDENT>\" { std::cout << "Quoted identifier: " << literal << '\n'; BEGIN(INITIAL); }
+<QIDENT>\" {
+    if (literal.empty()) {
+        std::cerr << "Line " << literal_line << ": quoted identifier cannot be empty\n";
+    } else if (literal.find('\0') != std::string::npos) {
+        std::cerr << "Line " << literal_line << ": quoted identifier cannot contain null bytes\n";
+    } else {
+        std::cout << "Quoted identifier: " << literal << '\n';
+    }
+
+    BEGIN(INITIAL);
+}
 
     /* Escape sequences */
 
-<CHR,STR,QIDENT>\\n { literal += '\n'; }
-<CHR,STR,QIDENT>\\r { literal += '\r'; }
-<CHR,STR,QIDENT>\\t { literal += '\t'; }
-<CHR,STR,QIDENT>\\\\ { literal += '\\'; }
-<CHR,STR,QIDENT>\\' { literal += '\''; }
-<CHR,STR,QIDENT>\\\" { literal += '"'; }
-<CHR,STR,QIDENT>\\x[0-9a-fA-F]{2} { literal += (char)strtol(yytext + 2, nullptr, 16); }
+<CHR,STR,QIDENT>\\n { append_escape('\n'); }
+<CHR,STR,QIDENT>\\r { append_escape('\r'); }
+<CHR,STR,QIDENT>\\t { append_escape('\t'); }
+<CHR,STR,QIDENT>\\\\ { append_escape('\\'); }
+<CHR,STR,QIDENT>\\' { append_escape('\''); }
+<CHR,STR,QIDENT>\\\" { append_escape('"'); }
+    /* \xNN is a byte in a string, but the code point U+00NN in a character literal */
+
+<STR,QIDENT>\\x[0-9a-fA-F]{2} { append_escape((char)strtol(yytext + 2, nullptr, 16)); }
+<CHR>\\x[0-9a-fA-F]{2} { append_code_point(strtoul(yytext + 2, nullptr, 16)); }
+
+    /* Unicode escape: 1+ hex digits, the code point is stored as UTF-8 */
+
+<CHR,STR,QIDENT>\\u\{[0-9a-fA-F]+\} { unicode_escape(yytext, YY_START); }
 
     /* Other escape */
 
@@ -94,7 +126,9 @@ OCT [0-7](_?[0-7])*
     /* Numbers */
     /* Hex float may contain either a fractional part, or an exponential part, or both simultaneously.*/
     /* Examples:  0x1.1p+1, 0x1.1, 0x11p+10, 0x1.1p10 */
-0x{HEX}(\.{HEX}([pP][+-]?{DEC})?|[pP][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
+    /* As in the compiler, one side of the dot may be empty: 0x.8, 0x1.p3 (the empty */
+    /* fraction needs an exponent, else '.' is the next token), but not both: 0x.p1  */
+0x({HEX}?\.{HEX}([pP][+-]?{DIGITS})?|{HEX}\.?[pP][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
 
 0x{HEX} { unsigned long long v = int_value(yytext + 2, 16); std::cout << "Hex integer literal: " << v << '\n'; }
 
@@ -103,10 +137,19 @@ OCT [0-7](_?[0-7])*
 0o{OCT} { unsigned long long v = int_value(yytext + 2, 8); std::cout << "Octal integer literal: " << v << '\n'; }
 
     /* DEC float may contain either a fractional part, or an exponential part, or both simultaneously.*/
-    /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10 */
-{DEC}(\.{DEC}([eE][+-]?{DEC})?|[eE][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
+    /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10, 1.e10 (empty fraction, as in the compiler) */
+{DEC}(\.{DIGITS}([eE][+-]?{DIGITS})?|\.?[eE][+-]?{DIGITS}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
 
 {DEC} { unsigned long long v = int_value(yytext, 10); std::cout << "Integer literal: " << v << '\n'; }
+
+    /* Malformed number. Zig reads a number as a digit followed by letters, digits, '_',  */
+    /* a sign right after e/E/p/P and at most one '.' (not after a sign), then validates */
+    /* it. Anything longer than a valid literal above is one bad token: 0x_, 1__0, 0b2.  */
+    /* This includes 5E0.0 and 0x.p1: the compiler's number check lets them through, but */
+    /* std.fmt.parseFloat rejects them and AstGen hits `unreachable` (0 in a release     */
+    /* build of zig), so they are compiler bugs, not literals.                           */
+
+[0-9][_a-zA-Z0-9]*([eEpP][+-]{NUMTAIL}|\.([_a-zA-Z0-9]|[eEpP][+-]){NUMTAIL})? { std::cerr << "Line " << yylineno << ": invalid number literal: " << yytext << '\n'; }
 
     /* Keywords */
 
@@ -164,10 +207,10 @@ OCT [0-7](_?[0-7])*
 "true" { std::cout << "Boolean literal(true): " << 1 << '\n'; }
 "false" { std::cout << "Boolean literal(false): " << 0 << '\n'; }
 
-    /* Integer types. [1,65535] with a prohibition of leading zeros. */
+    /* Integer types. [0,65535] with a prohibition of leading zeros. */
 
-u([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Unsigned integer type: " << yytext << '\n'; }
-i([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Signed integer type: " << yytext << '\n'; }
+u(0|[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Unsigned integer type: " << yytext << '\n'; }
+i(0|[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) { std::cout << "Signed integer type: " << yytext << '\n'; }
 
     /* Float types */
 
@@ -302,6 +345,7 @@ f128 { std::cout << "Float type: " << yytext << '\n'; }
 "..." { std::cout << "Operator (range): " << yytext << '\n'; }
 ".." { std::cout << "Operator (range): " << yytext << '\n'; }
 "=>" { std::cout << "Operator (switch prong): " << yytext << '\n'; }
+"->" { std::cout << "Operator (arrow): " << yytext << '\n'; }
 "||" { std::cout << "Operator (error set merge): " << yytext << '\n'; }
 "." { std::cout << "Operator (member): " << yytext << '\n'; }
 "?" { std::cout << "Operator (optional): " << yytext << '\n'; }
@@ -325,6 +369,53 @@ static const char* literal_kind(int state) {
         case QIDENT: return "quoted identifier";
         default:     return "string literal";
     }
+}
+
+/*! Append a character produced by a single-byte escape (\\n, \\x41, ...). */
+static void append_escape(char c) {
+    literal += c;
+    ++literal_chars;
+}
+
+/*! Check a \\u{...} escape and append its code point.
+ *  Values above U+10FFFF are rejected. Surrogate halves have no UTF-8
+ *  form, so Zig rejects them in strings; a character literal only holds
+ *  the number, so there they are accepted.
+ *  \param[in] text  the escape, \\u{...}.
+ *  \param[in] state current start condition, normally YY_START.
+ */
+static void unicode_escape(const char* text, int state) {
+    unsigned long long cp = strtoull(text + 3, nullptr, 16);
+
+    if (cp > 0x10FFFF || (state != CHR && cp >= 0xD800 && cp <= 0xDFFF)) {
+        std::cerr << "Line " << yylineno << ": invalid unicode code point: " << text << '\n';
+        return;
+    }
+
+    append_code_point(cp);
+}
+
+/*! Append one code point to the literal, encoded as UTF-8.
+ *  \param[in] cp code point, at most U+10FFFF.
+ */
+static void append_code_point(unsigned long cp) {
+    if (cp < 0x80) {
+        literal += (char)cp;
+    } else if (cp < 0x800) {
+        literal += (char)(0xC0 | (cp >> 6));
+        literal += (char)(0x80 | (cp & 0x3F));
+    } else if (cp < 0x10000) {
+        literal += (char)(0xE0 | (cp >> 12));
+        literal += (char)(0x80 | ((cp >> 6) & 0x3F));
+        literal += (char)(0x80 | (cp & 0x3F));
+    } else {
+        literal += (char)(0xF0 | (cp >> 18));
+        literal += (char)(0x80 | ((cp >> 12) & 0x3F));
+        literal += (char)(0x80 | ((cp >> 6) & 0x3F));
+        literal += (char)(0x80 | (cp & 0x3F));
+    }
+
+    ++literal_chars;
 }
 
 static std::string strip_underscores(const char* text) {
