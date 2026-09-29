@@ -1,0 +1,4 @@
+Boolean literal(true): 1
+Boolean literal(false): 0
+Null literal: null
+Constant: undefined

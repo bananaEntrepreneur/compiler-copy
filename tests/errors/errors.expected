@@ -1,0 +1,65 @@
+Keyword: const
+Identifier: a
+Operator (assignment): =
+Integer literal: 1
+Semicolon: ;
+Keyword: const
+Identifier: b
+Operator (assignment): =
+Line 2: unexpected character: #
+Semicolon: ;
+Keyword: const
+Identifier: c
+Operator (assignment): =
+Line 3: unexpected character: $
+Identifier: x
+Semicolon: ;
+Keyword: const
+Identifier: d
+Operator (assignment): =
+Line 4: unexpected character: `
+Integer literal: 2
+Line 4: unexpected character: `
+Semicolon: ;
+Keyword: const
+Identifier: ok_str
+Operator (assignment): =
+String literal: fine
+Semicolon: ;
+Keyword: const
+Identifier: ok_char
+Operator (assignment): =
+Char literal: a
+Semicolon: ;
+Keyword: const
+Identifier: ok_quoted
+Operator (assignment): =
+Quoted identifier: good
+Semicolon: ;
+Keyword: const
+Identifier: bad_str
+Operator (assignment): =
+Line 8: unterminated string literal
+Keyword: const
+Identifier: bad_char
+Operator (assignment): =
+Line 9: character literal must hold exactly one character
+Semicolon: ;
+Keyword: const
+Identifier: no_close
+Operator (assignment): =
+Line 10: unterminated character literal
+Keyword: const
+Identifier: bad_quoted
+Operator (assignment): =
+Line 11: unterminated quoted identifier
+Comment: // don't touch apostrophes in comments
+Keyword: const
+Identifier: in_str
+Operator (assignment): =
+String literal: it's fine
+Semicolon: ;
+Keyword: const
+Identifier: at_eof
+Operator (assignment): =
+Line 14: unterminated string literal

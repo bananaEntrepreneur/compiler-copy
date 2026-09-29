@@ -1,0 +1,62 @@
+Punctuator: [
+Punctuator: ]
+Punctuator: {
+Punctuator: }
+Punctuator: (
+Punctuator: )
+Separator: ,
+Separator: :
+Semicolon: ;
+Operator (arithmetic): +
+Operator (arithmetic): -
+Operator (arithmetic): *
+Operator (arithmetic): /
+Operator (arithmetic): %
+Operator (array repeat): **
+Operator (array concat): ++
+Operator (comparison): ==
+Operator (comparison): !=
+Operator (comparison): <
+Operator (comparison): >
+Operator (comparison): <=
+Operator (comparison): >=
+Operator (logical): !
+Operator (bitwise): &
+Operator (bitwise): |
+Operator (bitwise): ^
+Operator (bitwise): ~
+Operator (bitwise): <<
+Operator (bitwise): >>
+Operator (assignment): =
+Operator (assignment): +=
+Operator (assignment): -=
+Operator (assignment): *=
+Operator (assignment): /=
+Operator (assignment): %=
+Operator (assignment): &=
+Operator (assignment): |=
+Operator (assignment): ^=
+Operator (assignment): <<=
+Operator (assignment): >>=
+Operator (member): .
+Operator (struct deref): .*
+Operator (optional unwrap): .?
+Operator (optional): ?
+Operator (range): ..
+Operator (range): ...
+Operator (switch prong): =>
+Operator (wrapping): +%
+Operator (wrapping): -%
+Operator (wrapping): *%
+Operator (saturating): +|
+Operator (saturating): -|
+Operator (saturating): *|
+Operator (saturating): <<|
+Operator (assignment): +%=
+Operator (assignment): -%=
+Operator (assignment): *%=
+Operator (assignment): +|=
+Operator (assignment): -|=
+Operator (assignment): *|=
+Operator (assignment): <<|=
+Operator (error set merge): ||

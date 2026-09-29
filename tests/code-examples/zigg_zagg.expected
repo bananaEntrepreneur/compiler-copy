@@ -1,0 +1,126 @@
+Keyword: const
+Identifier: std
+Operator (assignment): =
+Builtin identifier: @import
+Punctuator: (
+String literal: std
+Punctuator: )
+Semicolon: ;
+Keyword: pub
+Keyword: fn
+Identifier: main
+Punctuator: (
+Punctuator: )
+Operator (logical): !
+Void type: void
+Punctuator: {
+Keyword: var
+Identifier: i
+Separator: :
+Usize type: usize
+Operator (assignment): =
+Integer literal: 1
+Semicolon: ;
+Keyword: while
+Punctuator: (
+Identifier: i
+Operator (comparison): <=
+Integer literal: 16
+Punctuator: )
+Separator: :
+Punctuator: (
+Identifier: i
+Operator (assignment): +=
+Integer literal: 1
+Punctuator: )
+Punctuator: {
+Keyword: if
+Punctuator: (
+Identifier: i
+Operator (arithmetic): %
+Integer literal: 15
+Operator (comparison): ==
+Integer literal: 0
+Punctuator: )
+Punctuator: {
+Identifier: std
+Operator (member): .
+Identifier: log
+Operator (member): .
+Identifier: info
+Punctuator: (
+String literal: ZiggZagg
+Separator: ,
+Operator (member): .
+Punctuator: {
+Punctuator: }
+Punctuator: )
+Semicolon: ;
+Punctuator: }
+Keyword: else
+Keyword: if
+Punctuator: (
+Identifier: i
+Operator (arithmetic): %
+Integer literal: 3
+Operator (comparison): ==
+Integer literal: 0
+Punctuator: )
+Punctuator: {
+Identifier: std
+Operator (member): .
+Identifier: log
+Operator (member): .
+Identifier: info
+Punctuator: (
+String literal: Zigg
+Separator: ,
+Operator (member): .
+Punctuator: {
+Punctuator: }
+Punctuator: )
+Semicolon: ;
+Punctuator: }
+Keyword: else
+Keyword: if
+Punctuator: (
+Identifier: i
+Operator (arithmetic): %
+Integer literal: 5
+Operator (comparison): ==
+Integer literal: 0
+Punctuator: )
+Punctuator: {
+Identifier: std
+Operator (member): .
+Identifier: log
+Operator (member): .
+Identifier: info
+Punctuator: (
+String literal: Zagg
+Separator: ,
+Operator (member): .
+Punctuator: {
+Punctuator: }
+Punctuator: )
+Semicolon: ;
+Punctuator: }
+Keyword: else
+Punctuator: {
+Identifier: std
+Operator (member): .
+Identifier: log
+Operator (member): .
+Identifier: info
+Punctuator: (
+String literal: {d}
+Separator: ,
+Operator (member): .
+Punctuator: {
+Identifier: i
+Punctuator: }
+Punctuator: )
+Semicolon: ;
+Punctuator: }
+Punctuator: }
+Punctuator: }

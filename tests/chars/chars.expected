@@ -1,0 +1,78 @@
+Keyword: const
+Identifier: plain
+Operator (assignment): =
+Char literal: a
+Semicolon: ;
+Keyword: const
+Identifier: digit
+Operator (assignment): =
+Char literal: 7
+Semicolon: ;
+Keyword: const
+Identifier: space
+Operator (assignment): =
+Char literal:  
+Semicolon: ;
+Keyword: const
+Identifier: nl
+Operator (assignment): =
+Char literal: 
+
+Semicolon: ;
+Keyword: const
+Identifier: cr
+Operator (assignment): =
+Char literal: 
+Semicolon: ;
+Keyword: const
+Identifier: tab
+Operator (assignment): =
+Char literal: 	
+Semicolon: ;
+Keyword: const
+Identifier: apos
+Operator (assignment): =
+Char literal: '
+Semicolon: ;
+Keyword: const
+Identifier: backslash
+Operator (assignment): =
+Char literal: \
+Semicolon: ;
+Keyword: const
+Identifier: quote
+Operator (assignment): =
+Char literal: "
+Semicolon: ;
+Keyword: const
+Identifier: hex
+Operator (assignment): =
+Char literal: A
+Semicolon: ;
+Keyword: const
+Identifier: unicode
+Operator (assignment): =
+Line 11: invalid escape sequence: \u
+Line 11: character literal must hold exactly one character
+Semicolon: ;
+Keyword: const
+Identifier: utf8_two_byte
+Operator (assignment): =
+Line 12: character literal must hold exactly one character
+Semicolon: ;
+Keyword: const
+Identifier: utf8_four_byte
+Operator (assignment): =
+Line 13: character literal must hold exactly one character
+Semicolon: ;
+Keyword: const
+Identifier: not_a_char
+Operator (assignment): =
+Line 14: character literal must hold exactly one character
+Semicolon: ;
+Keyword: const
+Identifier: in_string
+Operator (assignment): =
+String literal: it's fine
+Semicolon: ;
+Comment: // don't touch apostrophes in comments
