@@ -52,18 +52,17 @@ Semicolon: ;
 Keyword: const
 Identifier: unicode
 Operator (assignment): =
-Line 11: invalid escape sequence: \u
-Line 11: character literal must hold exactly one character
+Char literal: 💩
 Semicolon: ;
 Keyword: const
 Identifier: utf8_two_byte
 Operator (assignment): =
-Line 12: character literal must hold exactly one character
+Char literal: é
 Semicolon: ;
 Keyword: const
 Identifier: utf8_four_byte
 Operator (assignment): =
-Line 13: character literal must hold exactly one character
+Char literal: 💩
 Semicolon: ;
 Keyword: const
 Identifier: not_a_char

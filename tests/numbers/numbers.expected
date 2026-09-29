@@ -11,13 +11,13 @@ Float literal: 3.14
 Float literal: 3.1415
 Float literal: 1e+10
 Float literal: 0.0015
-Float literal (exponent): 2e+08
+Float literal: 2e+08
 Integer literal: 1000
 Hex integer literal: 57005
 Binary integer literal: 170
 Octal integer literal: 493
 Float literal: 10.25
-Float literal (exponent): 1e+11
+Float literal: 1e+11
 Integer literal: 0
 Identifier: x_
 Integer literal: 0
