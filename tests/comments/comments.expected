@@ -3,7 +3,6 @@ Comment: //
 Comment: /// doc comment
 Comment: //! top-level doc comment
 Comment: //// four slashes is a normal comment in Zig
-Comment: ///// five slashes too
 Comment: // comment with "double quotes" inside
 Comment: // comment with 'apostrophes' and don't
 Comment: // comment with a \\ backslash pair

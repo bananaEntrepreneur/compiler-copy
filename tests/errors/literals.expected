@@ -1,22 +1,50 @@
 Keyword: const
-Line 1: quoted identifier cannot be empty
+Identifier: a
 Operator (assignment): =
-Integer literal: 1
+error: invalid escape character: 'q' in line: 1
 Semicolon: ;
 Keyword: const
-Line 2: quoted identifier cannot contain null bytes
+Identifier: b
 Operator (assignment): =
-Integer literal: 2
+error: expected hex digit, found 'G' in line: 2
 Semicolon: ;
 Keyword: const
-Identifier: s
+Identifier: c
 Operator (assignment): =
-Line 3: invalid unicode code point: \u{110000}
-String literal: 
+error: empty unicode escape sequence in line: 3
 Semicolon: ;
 Keyword: const
-Identifier: t
+Identifier: d
 Operator (assignment): =
-Line 4: invalid unicode code point: \u{D800}
-String literal: 
+error: expected '{', found '1' in line: 4
+Semicolon: ;
+Keyword: const
+Identifier: e
+Operator (assignment): =
+error: expected hex digit or '}', found '"' in line: 5
+Semicolon: ;
+Keyword: const
+Identifier: f
+Operator (assignment): =
+error: unicode escape does not correspond to a valid unicode scalar value in line: 6
+Semicolon: ;
+Keyword: const
+Identifier: g
+Operator (assignment): =
+error: unicode escape does not correspond to a valid unicode scalar value in line: 7
+Semicolon: ;
+Keyword: const
+Identifier: h
+Operator (assignment): =
+error: identifier cannot be empty in line: 8
+Semicolon: ;
+Keyword: const
+Identifier: i
+Operator (assignment): =
+error: identifier cannot contain null bytes in line: 9
+Semicolon: ;
+Keyword: const
+Identifier: j
+Operator (assignment): =
+error: expected single quote ('), found '\' in line: 10
 Semicolon: ;
