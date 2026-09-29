@@ -35,7 +35,7 @@ C ulong type: c_ulong
 C longlong type: c_longlong
 C ulonglong type: c_ulonglong
 C longdouble type: c_longdouble
-Identifier: u0
+Unsigned integer type: u0
 Unsigned integer type: u7
 Signed integer type: i3
 Unsigned integer type: u256

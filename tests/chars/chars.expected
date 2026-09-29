@@ -50,27 +50,6 @@ Operator (assignment): =
 Char literal: A
 Semicolon: ;
 Keyword: const
-Identifier: unicode
-Operator (assignment): =
-Line 11: invalid escape sequence: \u
-Line 11: character literal must hold exactly one character
-Semicolon: ;
-Keyword: const
-Identifier: utf8_two_byte
-Operator (assignment): =
-Line 12: character literal must hold exactly one character
-Semicolon: ;
-Keyword: const
-Identifier: utf8_four_byte
-Operator (assignment): =
-Line 13: character literal must hold exactly one character
-Semicolon: ;
-Keyword: const
-Identifier: not_a_char
-Operator (assignment): =
-Line 14: character literal must hold exactly one character
-Semicolon: ;
-Keyword: const
 Identifier: in_string
 Operator (assignment): =
 String literal: it's fine

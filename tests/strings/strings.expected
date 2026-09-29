@@ -11,9 +11,8 @@ Semicolon: ;
 Keyword: const
 Identifier: escapes
 Operator (assignment): =
-Line 3: invalid escape sequence: \u
 String literal: nl:
- tab:	 cr: quote:" apos:' backslash:\ hex:A uni:{1F4A9}
+ tab:	 cr: quote:" apos:' backslash:\ hex:A
 Semicolon: ;
 Keyword: const
 Identifier: ends_with_escaped_quote

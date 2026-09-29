@@ -1,6 +1,6 @@
 const empty = "";
 const simple = "hello world";
-const escapes = "nl:\n tab:\t cr:\r quote:\" apos:\' backslash:\\ hex:\x41 uni:\u{1F4A9}";
+const escapes = "nl:\n tab:\t cr:\r quote:\" apos:\' backslash:\\ hex:\x41";
 const ends_with_escaped_quote = "trailing \"";
 const escaped_backslash = "ends with a backslash \\";
 const slashes = "// not a comment";

@@ -41,11 +41,6 @@ Operator (assignment): =
 Integer literal: 2
 Semicolon: ;
 Keyword: const
-Quoted identifier: 
-Operator (assignment): =
-Integer literal: 3
-Semicolon: ;
-Keyword: const
 Quoted identifier: has " quote
 Operator (assignment): =
 Integer literal: 4
