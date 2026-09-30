@@ -1,0 +1,33 @@
+Integer literal: 0
+Integer literal: 42
+Integer literal: 1000000
+Hex integer literal: 255
+Hex integer literal: 65535
+Binary integer literal: 170
+Octal integer literal: 511
+Comment: // 0x1_0000_0000_0000_0000
+Float literal: 3.14
+Float literal: 3.1415
+Float literal: 1e+10
+Float literal: 0.0015
+Float literal: 2e+08
+Float literal: 1e+11
+Comment: // 1.05
+Comment: // 1e05
+Comment: // 1.e5
+Hex float literal: 12
+Hex float literal: 16
+Hex float literal: 0.484375
+Hex float literal: 65280
+Hex float literal: 25260
+Comment: // 0x1p03
+Hex float literal: 1.5
+Comment: // 0x.8
+Comment: // 0x1.p3
+Hex integer literal: 485
+Integer literal: 0
+Operator (range): ..
+Integer literal: 10
+Integer literal: 0
+Operator (range): ...
+Integer literal: 9

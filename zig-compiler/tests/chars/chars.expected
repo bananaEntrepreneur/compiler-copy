@@ -1,0 +1,45 @@
+Keyword: const
+Identifier: plain
+Operator (assignment): =
+Char literal: a
+Semicolon: ;
+Keyword: const
+Identifier: space
+Operator (assignment): =
+Char literal:  
+Semicolon: ;
+Keyword: const
+Identifier: quote
+Operator (assignment): =
+Char literal: "
+Semicolon: ;
+Keyword: const
+Identifier: nl
+Operator (assignment): =
+Char literal: 
+
+Semicolon: ;
+Comment: // const cr = '\r';
+Keyword: const
+Identifier: tab
+Operator (assignment): =
+Char literal: 	
+Semicolon: ;
+Keyword: const
+Identifier: apos
+Operator (assignment): =
+Char literal: '
+Semicolon: ;
+Keyword: const
+Identifier: backslash
+Operator (assignment): =
+Char literal: \
+Semicolon: ;
+Keyword: const
+Identifier: hex
+Operator (assignment): =
+Char literal: A
+Semicolon: ;
+Comment: // const hex_latin1 = '\xe9';
+Comment: // const unicode = '\u{41}';
+Comment: // const surrogate = '\u{D800}';

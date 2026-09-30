@@ -1,0 +1,12 @@
+const plain = 'a';
+const space = ' ';
+const quote = '"';
+const nl = '\n';
+// const cr = '\r';
+const tab = '\t';
+const apos = '\'';
+const backslash = '\\';
+const hex = '\x41';
+// const hex_latin1 = '\xe9';
+// const unicode = '\u{41}';
+// const surrogate = '\u{D800}';

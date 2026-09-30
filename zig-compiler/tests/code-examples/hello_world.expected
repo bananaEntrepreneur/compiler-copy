@@ -1,0 +1,50 @@
+Keyword: const
+Identifier: std
+Operator (assignment): =
+Builtin identifier: @import
+Punctuator: (
+String literal: std
+Punctuator: )
+Semicolon: ;
+Keyword: const
+Identifier: Io
+Operator (assignment): =
+Identifier: std
+Operator (member): .
+Identifier: Io
+Semicolon: ;
+Keyword: pub
+Keyword: fn
+Identifier: main
+Punctuator: (
+Identifier: init
+Separator: :
+Identifier: std
+Operator (member): .
+Identifier: process
+Operator (member): .
+Identifier: Init
+Punctuator: )
+Operator (logical): !
+Void type: void
+Punctuator: {
+Keyword: try
+Identifier: Io
+Operator (member): .
+Identifier: File
+Operator (member): .
+Identifier: stdout
+Punctuator: (
+Punctuator: )
+Operator (member): .
+Identifier: writeStreamingAll
+Punctuator: (
+Identifier: init
+Operator (member): .
+Identifier: io
+Separator: ,
+String literal: hello world!
+
+Punctuator: )
+Semicolon: ;
+Punctuator: }

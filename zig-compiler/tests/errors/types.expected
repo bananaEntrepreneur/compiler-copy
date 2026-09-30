@@ -1,0 +1,2 @@
+error: primitive integer type 'u01' has leading zero in line: 1
+error: primitive integer type 'u65536' exceeds maximum bit width of 65535 in line: 2

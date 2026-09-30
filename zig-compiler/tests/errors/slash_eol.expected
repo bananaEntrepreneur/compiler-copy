@@ -1,0 +1,10 @@
+Keyword: const
+Identifier: s
+Operator (assignment): =
+error: invalid escape sequence: \ in line: 1
+error: unterminated string literal in line: 1
+Keyword: const
+Identifier: after
+Operator (assignment): =
+Integer literal: 42
+Semicolon: ;

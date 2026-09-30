@@ -1,0 +1,33 @@
+Unsigned integer type: u8
+Signed integer type: i32
+Unsigned integer type: u0
+Signed integer type: i0
+Signed integer type: i65535
+Float type: f16
+Float type: f32
+Float type: f64
+Float type: f80
+Float type: f128
+Bool type: bool
+Void type: void
+Noreturn type: noreturn
+Type: type
+Anyerror type: anyerror
+Anyopaque type: anyopaque
+Comptime int type: comptime_int
+Comptime float type: comptime_float
+Usize type: usize
+Isize type: isize
+C char type: c_char
+C short type: c_short
+C ushort type: c_ushort
+C int type: c_int
+C uint type: c_uint
+C long type: c_long
+C ulong type: c_ulong
+C longlong type: c_longlong
+C ulonglong type: c_ulonglong
+C longdouble type: c_longdouble
+Identifier: u8x
+Identifier: u
+Identifier: f7
