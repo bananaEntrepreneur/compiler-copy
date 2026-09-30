@@ -1,0 +1,145 @@
+Source file
+  Variable declaration: const
+    Identifier: Point
+    Value
+      Struct
+        Field
+          Identifier: x
+          Type
+            Float type: f32
+          Value
+            Integer literal: 0
+        Field
+          Identifier: y
+          Type
+            Float type: f32
+          Value
+            Integer literal: 0
+        Function declaration
+          Keyword: pub
+          Identifier: length
+          Parameters
+            Parameter
+              Identifier: self
+              Type
+                Identifier: Point
+          Return type
+            Float type: f32
+          Block
+            Return
+              Builtin call
+                Builtin identifier: @sqrt
+                Binary operator: +
+                  Binary operator: *
+                    Member access
+                      Identifier: self
+                      Identifier: x
+                    Member access
+                      Identifier: self
+                      Identifier: x
+                  Binary operator: *
+                    Member access
+                      Identifier: self
+                      Identifier: y
+                    Member access
+                      Identifier: self
+                      Identifier: y
+  Variable declaration: const
+    Identifier: Color
+    Value
+      Enum
+        Tag type
+          Unsigned integer type: u8
+        Field
+          Identifier: red
+          Value
+            Integer literal: 1
+        Field
+          Identifier: green
+        Field
+          Identifier: blue
+  Variable declaration: const
+    Identifier: Value
+    Value
+      Union
+        Tag type: enum
+        Field
+          Identifier: int
+          Type
+            Signed integer type: i64
+        Field
+          Identifier: float
+          Type
+            Float type: f64
+        Field
+          Identifier: none
+  Variable declaration: const
+    Identifier: Tagged
+    Value
+      Union
+        Tag type
+          Identifier: Color
+        Field
+          Identifier: red
+          Type
+            Void type: void
+        Field
+          Identifier: green
+          Type
+            Unsigned integer type: u8
+        Field
+          Identifier: blue
+          Type
+            Unsigned integer type: u16
+  Variable declaration: const
+    Identifier: Flags
+    Value
+      Struct
+        Keyword: packed
+        Backing type
+          Unsigned integer type: u8
+        Field
+          Identifier: read
+          Type
+            Bool type: bool
+        Field
+          Identifier: write
+          Type
+            Bool type: bool
+        Field
+          Identifier: rest
+          Type
+            Unsigned integer type: u6
+  Variable declaration: const
+    Identifier: Header
+    Value
+      Struct
+        Keyword: extern
+        Field
+          Type: type
+          Type
+            Unsigned integer type: u16
+        Field
+          Identifier: size
+          Type
+            Unsigned integer type: u32
+  Variable declaration: const
+    Identifier: Handle
+    Value
+      Opaque
+  Variable declaration: const
+    Identifier: FileError
+    Value
+      Error set
+        Identifier: NotFound
+        Identifier: AccessDenied
+  Variable declaration: const
+    Identifier: Inferred
+    Value
+      Union
+        Tag type: enum
+          Unsigned integer type: u8
+        Field
+          Identifier: a
+        Field
+          Identifier: b

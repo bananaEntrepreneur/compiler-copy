@@ -1,0 +1,61 @@
+Source file
+  Variable declaration: const
+    Identifier: a
+    Value
+      Integer literal: 1
+  Variable declaration: var
+    Identifier: b
+    Type
+      Unsigned integer type: u32
+    Value
+      Integer literal: 2
+  Variable declaration: const
+    Keyword: pub
+    Identifier: c
+    Type
+      Array type
+        Length
+          Integer literal: 4
+        Unsigned integer type: u8
+    Align
+      Integer literal: 4
+    Value
+      Constant: undefined
+  Variable declaration: var
+    Keyword: extern
+      String literal: c
+    Identifier: errno
+    Type
+      C int type: c_int
+  Variable declaration: var
+    Keyword: export
+    Identifier: counter
+    Type
+      Usize type: usize
+    Value
+      Integer literal: 0
+  Variable declaration: var
+    Keyword: pub
+    Keyword: extern
+    Keyword: threadlocal
+    Identifier: shared
+    Type
+      Signed integer type: i32
+  Variable declaration: var
+    Identifier: placed
+    Type
+      Unsigned integer type: u8
+    Link section
+      String literal: .data
+    Value
+      Integer literal: 0
+  Test declaration
+    String literal: addition
+    Block
+  Test declaration
+    Identifier: a
+    Block
+  Test declaration
+    Block
+  Comptime
+    Block

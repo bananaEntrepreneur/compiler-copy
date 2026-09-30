@@ -4,8 +4,11 @@
 
 %{
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <cstdlib>
+
+#include "parser.hpp"
 
 static std::string ml;
 static std::string literal;
@@ -14,8 +17,29 @@ static int literal_line;
 static unsigned long long int_value(const char* text, int base);
 static double float_value(const char* text);
 static const char* literal_type_from_condition(int condition);
-static void report(int line, const std::string& message);
 static bool validate_int_size(const char* text);
+void report(int line, const std::string& message);
+
+bool print_tokens = false; // --tokens: print every lexeme, as in the first exercise
+int error_count = 0;
+
+    /* Every rule hands its own token to the parser. With --tokens it is also printed. */
+
+#define TOKEN(token, output) do {                        \
+        if (print_tokens) std::cout << output << '\n';   \
+        return token;                                    \
+    } while (0)
+
+    /* The same, and the printed text becomes the token's semantic value: */
+    /* the parser puts it in the tree as a leaf.                           */
+
+#define VALUE(token, output) do {                        \
+        std::ostringstream out;                          \
+        out << output;                                   \
+        if (print_tokens) std::cout << out.str() << '\n'; \
+        yylval.text = new std::string(out.str());        \
+        return token;                                    \
+    } while (0)
 %}
 
     /* Only DEC numbers can not start with zero */
@@ -29,7 +53,7 @@ OCT [0-7](_?[0-7])*
 
     /* Comment. Match any comment. Anyway, they will be deleted by parser. */
 
-"//"[^\r\n]* { std::cout << "Comment: " << yytext << '\n'; }
+"//"[^\r\n]* { if (print_tokens) std::cout << "Comment: " << yytext << '\n'; }
 
     /* Character literal */
 
@@ -38,13 +62,13 @@ OCT [0-7](_?[0-7])*
 <CHR>[^\\'\n] { literal += yytext; }
 
 <CHR>' {
+    BEGIN(INITIAL);
+
     if (literal.size() == 1) {
-        std::cout << "Char literal: " << literal << '\n';
-    } else {
-        report(literal_line, "character literal must hold exactly one character");
+        VALUE(CHAR_LITERAL, "Char literal: " << literal);
     }
 
-    BEGIN(INITIAL);
+    report(literal_line, "character literal must hold exactly one character");
 }
 
     /* String literal */
@@ -53,13 +77,13 @@ OCT [0-7](_?[0-7])*
 
 <STR,QIDENT>[^\\"\n]+ { literal += yytext; }
 
-<STR>\" { std::cout << "String literal: " << literal << '\n'; BEGIN(INITIAL); }
+<STR>\" { BEGIN(INITIAL); VALUE(STRING_LITERAL, "String literal: " << literal); }
 
     /* Quoted identifier. Backslash and escape sequences can be used - it will be just an id. */
 
 @\" { literal.clear(); literal_line = yylineno; BEGIN(QIDENT); }
 
-<QIDENT>\" { std::cout << "Quoted identifier: " << literal << '\n'; BEGIN(INITIAL); }
+<QIDENT>\" { BEGIN(INITIAL); VALUE(IDENTIFIER, "Quoted identifier: " << literal); }
 
     /* Escape sequences */
 
@@ -89,224 +113,224 @@ OCT [0-7](_?[0-7])*
 
 <MLSTR>\r?\n[ \t]*\\\\ { ml += '\n'; } // Может быть несколько пустых строчек между многострочными строчками
 
-<MLSTR>\r?\n { std::cout << "Multiline string literal: " << ml << '\n'; BEGIN(INITIAL); }
+<MLSTR>\r?\n { BEGIN(INITIAL); VALUE(MULTILINE_STRING_LITERAL, "Multiline string literal: " << ml); }
 
-<MLSTR><<EOF>> { std::cout << "Multiline string literal: " << ml << '\n'; BEGIN(INITIAL); }
+<MLSTR><<EOF>> { BEGIN(INITIAL); VALUE(MULTILINE_STRING_LITERAL, "Multiline string literal: " << ml); }
 
     /* Numbers */
     /* Hex float may contain either a fractional part, or an exponential part, or both simultaneously. */
     /* Examples:  0x1.1p+1, 0x1.1, 0x11p+10, 0x1.1p10 */
-0x{HEX}(\.{HEX}([pP][+-]?{DEC})?|[pP][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Hex float literal: " << v << '\n'; }
+0x{HEX}(\.{HEX}([pP][+-]?{DEC})?|[pP][+-]?{DEC}) { VALUE(FLOAT_LITERAL, "Hex float literal: " << float_value(yytext)); }
 
-0x{HEX} { unsigned long long v = int_value(yytext + 2, 16); std::cout << "Hex integer literal: " << v << '\n'; }
+0x{HEX} { VALUE(INTEGER_LITERAL, "Hex integer literal: " << int_value(yytext + 2, 16)); }
 
-0b{BIN} { unsigned long long v = int_value(yytext + 2, 2); std::cout << "Binary integer literal: " << v << '\n'; }
+0b{BIN} { VALUE(INTEGER_LITERAL, "Binary integer literal: " << int_value(yytext + 2, 2)); }
 
-0o{OCT} { unsigned long long v = int_value(yytext + 2, 8); std::cout << "Octal integer literal: " << v << '\n'; }
+0o{OCT} { VALUE(INTEGER_LITERAL, "Octal integer literal: " << int_value(yytext + 2, 8)); }
 
     /* DEC float may contain either a fractional part, or an exponential part, or both simultaneously. */
     /* Examples:  1.1e+1, 1.1, 11e+10, 1.1E10 */
-{DEC}(\.{DEC}([eE][+-]?{DEC})?|[eE][+-]?{DEC}) { double v = float_value(yytext); std::cout << "Float literal: " << v << '\n'; }
+{DEC}(\.{DEC}([eE][+-]?{DEC})?|[eE][+-]?{DEC}) { VALUE(FLOAT_LITERAL, "Float literal: " << float_value(yytext)); }
 
-{DEC} { unsigned long long v = int_value(yytext, 10); std::cout << "Integer literal: " << v << '\n'; }
+{DEC} { VALUE(INTEGER_LITERAL, "Integer literal: " << int_value(yytext, 10)); }
 
     /* Keywords */
 
-"addrspace" { std::cout << "Keyword: " << yytext << '\n'; }
-"align" { std::cout << "Keyword: " << yytext << '\n'; }
-"allowzero" { std::cout << "Keyword: " << yytext << '\n'; }
-"and" { std::cout << "Keyword: " << yytext << '\n'; }
-"anyframe" { std::cout << "Keyword: " << yytext << '\n'; }
-"anytype" { std::cout << "Keyword: " << yytext << '\n'; }
-"asm" { std::cout << "Keyword: " << yytext << '\n'; }
-"break" { std::cout << "Keyword: " << yytext << '\n'; }
-"callconv" { std::cout << "Keyword: " << yytext << '\n'; }
-"catch" { std::cout << "Keyword: " << yytext << '\n'; }
-"comptime" { std::cout << "Keyword: " << yytext << '\n'; }
-"const" { std::cout << "Keyword: " << yytext << '\n'; }
-"continue" { std::cout << "Keyword: " << yytext << '\n'; }
-"defer" { std::cout << "Keyword: " << yytext << '\n'; }
-"else" { std::cout << "Keyword: " << yytext << '\n'; }
-"enum" { std::cout << "Keyword: " << yytext << '\n'; }
-"errdefer" { std::cout << "Keyword: " << yytext << '\n'; }
-"error" { std::cout << "Keyword: " << yytext << '\n'; }
-"export" { std::cout << "Keyword: " << yytext << '\n'; }
-"extern" { std::cout << "Keyword: " << yytext << '\n'; }
-"fn" { std::cout << "Keyword: " << yytext << '\n'; }
-"for" { std::cout << "Keyword: " << yytext << '\n'; }
-"if" { std::cout << "Keyword: " << yytext << '\n'; }
-"inline" { std::cout << "Keyword: " << yytext << '\n'; }
-"linksection" { std::cout << "Keyword: " << yytext << '\n'; }
-"noalias" { std::cout << "Keyword: " << yytext << '\n'; }
-"noinline" { std::cout << "Keyword: " << yytext << '\n'; }
-"nosuspend" { std::cout << "Keyword: " << yytext << '\n'; }
-"opaque" { std::cout << "Keyword: " << yytext << '\n'; }
-"or" { std::cout << "Keyword: " << yytext << '\n'; }
-"orelse" { std::cout << "Keyword: " << yytext << '\n'; }
-"packed" { std::cout << "Keyword: " << yytext << '\n'; }
-"pub" { std::cout << "Keyword: " << yytext << '\n'; }
-"resume" { std::cout << "Keyword: " << yytext << '\n'; }
-"return" { std::cout << "Keyword: " << yytext << '\n'; }
-"struct" { std::cout << "Keyword: " << yytext << '\n'; }
-"suspend" { std::cout << "Keyword: " << yytext << '\n'; }
-"switch" { std::cout << "Keyword: " << yytext << '\n'; }
-"test" { std::cout << "Keyword: " << yytext << '\n'; }
-"threadlocal" { std::cout << "Keyword: " << yytext << '\n'; }
-"try" { std::cout << "Keyword: " << yytext << '\n'; }
-"union" { std::cout << "Keyword: " << yytext << '\n'; }
-"unreachable" { std::cout << "Keyword: " << yytext << '\n'; }
-"var" { std::cout << "Keyword: " << yytext << '\n'; }
-"volatile" { std::cout << "Keyword: " << yytext << '\n'; }
-"while" { std::cout << "Keyword: " << yytext << '\n'; }
-"null" { std::cout << "Null literal: " << yytext << '\n'; }
-"undefined" { std::cout << "Constant: " << yytext << '\n'; }
+"addrspace" { TOKEN(KW_ADDRSPACE, "Keyword: " << yytext); }
+"align" { TOKEN(KW_ALIGN, "Keyword: " << yytext); }
+"allowzero" { TOKEN(KW_ALLOWZERO, "Keyword: " << yytext); }
+"and" { TOKEN(KW_AND, "Keyword: " << yytext); }
+"anyframe" { TOKEN(KW_ANYFRAME, "Keyword: " << yytext); }
+"anytype" { TOKEN(KW_ANYTYPE, "Keyword: " << yytext); }
+"asm" { TOKEN(KW_ASM, "Keyword: " << yytext); }
+"break" { TOKEN(KW_BREAK, "Keyword: " << yytext); }
+"callconv" { TOKEN(KW_CALLCONV, "Keyword: " << yytext); }
+"catch" { TOKEN(KW_CATCH, "Keyword: " << yytext); }
+"comptime" { TOKEN(KW_COMPTIME, "Keyword: " << yytext); }
+"const" { TOKEN(KW_CONST, "Keyword: " << yytext); }
+"continue" { TOKEN(KW_CONTINUE, "Keyword: " << yytext); }
+"defer" { TOKEN(KW_DEFER, "Keyword: " << yytext); }
+"else" { TOKEN(KW_ELSE, "Keyword: " << yytext); }
+"enum" { TOKEN(KW_ENUM, "Keyword: " << yytext); }
+"errdefer" { TOKEN(KW_ERRDEFER, "Keyword: " << yytext); }
+"error" { TOKEN(KW_ERROR, "Keyword: " << yytext); }
+"export" { TOKEN(KW_EXPORT, "Keyword: " << yytext); }
+"extern" { TOKEN(KW_EXTERN, "Keyword: " << yytext); }
+"fn" { TOKEN(KW_FN, "Keyword: " << yytext); }
+"for" { TOKEN(KW_FOR, "Keyword: " << yytext); }
+"if" { TOKEN(KW_IF, "Keyword: " << yytext); }
+"inline" { TOKEN(KW_INLINE, "Keyword: " << yytext); }
+"linksection" { TOKEN(KW_LINKSECTION, "Keyword: " << yytext); }
+"noalias" { TOKEN(KW_NOALIAS, "Keyword: " << yytext); }
+"noinline" { TOKEN(KW_NOINLINE, "Keyword: " << yytext); }
+"nosuspend" { TOKEN(KW_NOSUSPEND, "Keyword: " << yytext); }
+"opaque" { TOKEN(KW_OPAQUE, "Keyword: " << yytext); }
+"or" { TOKEN(KW_OR, "Keyword: " << yytext); }
+"orelse" { TOKEN(KW_ORELSE, "Keyword: " << yytext); }
+"packed" { TOKEN(KW_PACKED, "Keyword: " << yytext); }
+"pub" { TOKEN(KW_PUB, "Keyword: " << yytext); }
+"resume" { TOKEN(KW_RESUME, "Keyword: " << yytext); }
+"return" { TOKEN(KW_RETURN, "Keyword: " << yytext); }
+"struct" { TOKEN(KW_STRUCT, "Keyword: " << yytext); }
+"suspend" { TOKEN(KW_SUSPEND, "Keyword: " << yytext); }
+"switch" { TOKEN(KW_SWITCH, "Keyword: " << yytext); }
+"test" { TOKEN(KW_TEST, "Keyword: " << yytext); }
+"threadlocal" { TOKEN(KW_THREADLOCAL, "Keyword: " << yytext); }
+"try" { TOKEN(KW_TRY, "Keyword: " << yytext); }
+"union" { TOKEN(KW_UNION, "Keyword: " << yytext); }
+"unreachable" { TOKEN(KW_UNREACHABLE, "Keyword: " << yytext); }
+"var" { TOKEN(KW_VAR, "Keyword: " << yytext); }
+"volatile" { TOKEN(KW_VOLATILE, "Keyword: " << yytext); }
+"while" { TOKEN(KW_WHILE, "Keyword: " << yytext); }
+"null" { VALUE(KW_NULL, "Null literal: " << yytext); }
+"undefined" { VALUE(KW_UNDEFINED, "Constant: " << yytext); }
 
     /* Constants */
 
-"true" { std::cout << "Boolean literal(true): " << 1 << '\n'; }
-"false" { std::cout << "Boolean literal(false): " << 0 << '\n'; }
+"true" { VALUE(KW_TRUE, "Boolean literal(true): " << 1); }
+"false" { VALUE(KW_FALSE, "Boolean literal(false): " << 0); }
 
     /* Integer types. Number in [0,65535], no leading zero. */
 
-u[0-9]+ { if (validate_int_size(yytext)) std::cout << "Unsigned integer type: " << yytext << '\n'; }
-i[0-9]+ { if (validate_int_size(yytext)) std::cout << "Signed integer type: " << yytext << '\n'; }
+u[0-9]+ { if (validate_int_size(yytext)) VALUE(PRIMITIVE_TYPE, "Unsigned integer type: " << yytext); }
+i[0-9]+ { if (validate_int_size(yytext)) VALUE(PRIMITIVE_TYPE, "Signed integer type: " << yytext); }
 
     /* Float types */
 
-f16 { std::cout << "Float type: " << yytext << '\n'; }
-f32 { std::cout << "Float type: " << yytext << '\n'; }
-f64 { std::cout << "Float type: " << yytext << '\n'; }
-f80 { std::cout << "Float type: " << yytext << '\n'; }
-f128 { std::cout << "Float type: " << yytext << '\n'; }
+f16 { VALUE(PRIMITIVE_TYPE, "Float type: " << yytext); }
+f32 { VALUE(PRIMITIVE_TYPE, "Float type: " << yytext); }
+f64 { VALUE(PRIMITIVE_TYPE, "Float type: " << yytext); }
+f80 { VALUE(PRIMITIVE_TYPE, "Float type: " << yytext); }
+f128 { VALUE(PRIMITIVE_TYPE, "Float type: " << yytext); }
 
     /* Other primitive types */
 
-"bool" { std::cout << "Bool type: " << yytext << '\n'; }
-"void" { std::cout << "Void type: " << yytext << '\n'; }
-"noreturn" { std::cout << "Noreturn type: " << yytext << '\n'; }
-"type" { std::cout << "Type: " << yytext << '\n'; }
-"anyerror" { std::cout << "Anyerror type: " << yytext << '\n'; }
-"anyopaque" { std::cout << "Anyopaque type: " << yytext << '\n'; }
-"comptime_int" { std::cout << "Comptime int type: " << yytext << '\n'; }
-"comptime_float" { std::cout << "Comptime float type: " << yytext << '\n'; }
+"bool" { VALUE(PRIMITIVE_TYPE, "Bool type: " << yytext); }
+"void" { VALUE(PRIMITIVE_TYPE, "Void type: " << yytext); }
+"noreturn" { VALUE(PRIMITIVE_TYPE, "Noreturn type: " << yytext); }
+"type" { VALUE(PRIMITIVE_TYPE, "Type: " << yytext); }
+"anyerror" { VALUE(PRIMITIVE_TYPE, "Anyerror type: " << yytext); }
+"anyopaque" { VALUE(PRIMITIVE_TYPE, "Anyopaque type: " << yytext); }
+"comptime_int" { VALUE(PRIMITIVE_TYPE, "Comptime int type: " << yytext); }
+"comptime_float" { VALUE(PRIMITIVE_TYPE, "Comptime float type: " << yytext); }
 
     /* Pointer-sized types */
 
-"usize" { std::cout << "Usize type: " << yytext << '\n'; }
-"isize" { std::cout << "Isize type: " << yytext << '\n'; }
+"usize" { VALUE(PRIMITIVE_TYPE, "Usize type: " << yytext); }
+"isize" { VALUE(PRIMITIVE_TYPE, "Isize type: " << yytext); }
 
     /* C-compatible types */
 
-"c_char" { std::cout << "C char type: " << yytext << '\n'; }
-"c_short" { std::cout << "C short type: " << yytext << '\n'; }
-"c_ushort" { std::cout << "C ushort type: " << yytext << '\n'; }
-"c_int" { std::cout << "C int type: " << yytext << '\n'; }
-"c_uint" { std::cout << "C uint type: " << yytext << '\n'; }
-"c_long" { std::cout << "C long type: " << yytext << '\n'; }
-"c_ulong" { std::cout << "C ulong type: " << yytext << '\n'; }
-"c_longlong" { std::cout << "C longlong type: " << yytext << '\n'; }
-"c_ulonglong" { std::cout << "C ulonglong type: " << yytext << '\n'; }
-"c_longdouble" { std::cout << "C longdouble type: " << yytext << '\n'; }
+"c_char" { VALUE(PRIMITIVE_TYPE, "C char type: " << yytext); }
+"c_short" { VALUE(PRIMITIVE_TYPE, "C short type: " << yytext); }
+"c_ushort" { VALUE(PRIMITIVE_TYPE, "C ushort type: " << yytext); }
+"c_int" { VALUE(PRIMITIVE_TYPE, "C int type: " << yytext); }
+"c_uint" { VALUE(PRIMITIVE_TYPE, "C uint type: " << yytext); }
+"c_long" { VALUE(PRIMITIVE_TYPE, "C long type: " << yytext); }
+"c_ulong" { VALUE(PRIMITIVE_TYPE, "C ulong type: " << yytext); }
+"c_longlong" { VALUE(PRIMITIVE_TYPE, "C longlong type: " << yytext); }
+"c_ulonglong" { VALUE(PRIMITIVE_TYPE, "C ulonglong type: " << yytext); }
+"c_longdouble" { VALUE(PRIMITIVE_TYPE, "C longdouble type: " << yytext); }
 
     /* Identifiers */
 
-[A-Za-z_][A-Za-z0-9_]* { std::cout << "Identifier: " << yytext << '\n'; }
+[A-Za-z_][A-Za-z0-9_]* { VALUE(IDENTIFIER, "Identifier: " << yytext); }
 
     /* Builtin identifiers. Lexer allows any identifier, but later only implecated functions will be allowed  */
 
-@[a-zA-Z_][a-zA-Z0-9_]* { std::cout << "Builtin identifier: " << yytext << '\n'; }
+@[a-zA-Z_][a-zA-Z0-9_]* { VALUE(BUILTIN, "Builtin identifier: " << yytext); }
 
     /* Punctuators */
 
-"[" { std::cout << "Punctuator: " << yytext << '\n'; }
-"]" { std::cout << "Punctuator: " << yytext << '\n'; }
-"{" { std::cout << "Punctuator: " << yytext << '\n'; }
-"}" { std::cout << "Punctuator: " << yytext << '\n'; }
-"(" { std::cout << "Punctuator: " << yytext << '\n'; }
-")" { std::cout << "Punctuator: " << yytext << '\n'; }
+"[" { TOKEN(LBRACKET, "Punctuator: " << yytext); }
+"]" { TOKEN(RBRACKET, "Punctuator: " << yytext); }
+"{" { TOKEN(LBRACE, "Punctuator: " << yytext); }
+"}" { TOKEN(RBRACE, "Punctuator: " << yytext); }
+"(" { TOKEN(LPAREN, "Punctuator: " << yytext); }
+")" { TOKEN(RPAREN, "Punctuator: " << yytext); }
 
     /* Separators */
 
-"," { std::cout << "Separator: " << yytext << '\n'; }
-":" { std::cout << "Separator: " << yytext << '\n'; }
-";" { std::cout << "Semicolon: " << yytext << '\n'; }
+"," { TOKEN(COMMA, "Separator: " << yytext); }
+":" { TOKEN(COLON, "Separator: " << yytext); }
+";" { TOKEN(SEMICOLON, "Semicolon: " << yytext); }
 
     /* Operators (array) */
 
-"++" { std::cout << "Operator (array concat): " << yytext << '\n'; }
-"**" { std::cout << "Operator (array repeat): " << yytext << '\n'; }
+"++" { TOKEN(PLUS_PLUS, "Operator (array concat): " << yytext); }
+"**" { TOKEN(ASTERISK_ASTERISK, "Operator (array repeat): " << yytext); }
 
     /* Operators (arithmetic) */
 
-"+" { std::cout << "Operator (arithmetic): " << yytext << '\n'; }
-"-" { std::cout << "Operator (arithmetic): " << yytext << '\n'; }
-"*" { std::cout << "Operator (arithmetic): " << yytext << '\n'; }
-"/" { std::cout << "Operator (arithmetic): " << yytext << '\n'; }
-"%" { std::cout << "Operator (arithmetic): " << yytext << '\n'; }
+"+" { TOKEN(PLUS, "Operator (arithmetic): " << yytext); }
+"-" { TOKEN(MINUS, "Operator (arithmetic): " << yytext); }
+"*" { TOKEN(ASTERISK, "Operator (arithmetic): " << yytext); }
+"/" { TOKEN(SLASH, "Operator (arithmetic): " << yytext); }
+"%" { TOKEN(PERCENT, "Operator (arithmetic): " << yytext); }
 
     /* Wrapping (%) and saturating (|) operators */
 
-"+%" { std::cout << "Operator (wrapping): " << yytext << '\n'; }
-"-%" { std::cout << "Operator (wrapping): " << yytext << '\n'; }
-"*%" { std::cout << "Operator (wrapping): " << yytext << '\n'; }
-"+|" { std::cout << "Operator (saturating): " << yytext << '\n'; }
-"-|" { std::cout << "Operator (saturating): " << yytext << '\n'; }
-"*|" { std::cout << "Operator (saturating): " << yytext << '\n'; }
-"<<|" { std::cout << "Operator (saturating): " << yytext << '\n'; }
+"+%" { TOKEN(PLUS_PERCENT, "Operator (wrapping): " << yytext); }
+"-%" { TOKEN(MINUS_PERCENT, "Operator (wrapping): " << yytext); }
+"*%" { TOKEN(ASTERISK_PERCENT, "Operator (wrapping): " << yytext); }
+"+|" { TOKEN(PLUS_PIPE, "Operator (saturating): " << yytext); }
+"-|" { TOKEN(MINUS_PIPE, "Operator (saturating): " << yytext); }
+"*|" { TOKEN(ASTERISK_PIPE, "Operator (saturating): " << yytext); }
+"<<|" { TOKEN(SHL_PIPE, "Operator (saturating): " << yytext); }
 
     /* Operators (comparison) */
 
-"==" { std::cout << "Operator (comparison): " << yytext << '\n'; }
-"!=" { std::cout << "Operator (comparison): " << yytext << '\n'; }
-"<=" { std::cout << "Operator (comparison): " << yytext << '\n'; }
-">=" { std::cout << "Operator (comparison): " << yytext << '\n'; }
-"<" { std::cout << "Operator (comparison): " << yytext << '\n'; }
-">" { std::cout << "Operator (comparison): " << yytext << '\n'; }
+"==" { TOKEN(EQUAL_EQUAL, "Operator (comparison): " << yytext); }
+"!=" { TOKEN(BANG_EQUAL, "Operator (comparison): " << yytext); }
+"<=" { TOKEN(LESS_EQUAL, "Operator (comparison): " << yytext); }
+">=" { TOKEN(GREATER_EQUAL, "Operator (comparison): " << yytext); }
+"<" { TOKEN(LESS, "Operator (comparison): " << yytext); }
+">" { TOKEN(GREATER, "Operator (comparison): " << yytext); }
 
     /* Operators (logical) */
 
-"!" { std::cout << "Operator (logical): " << yytext << '\n'; }
+"!" { TOKEN(BANG, "Operator (logical): " << yytext); }
 
     /* Operators (bitwise) */
 
-"<<" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
-">>" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
-"&" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
-"|" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
-"^" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
-"~" { std::cout << "Operator (bitwise): " << yytext << '\n'; }
+"<<" { TOKEN(SHL, "Operator (bitwise): " << yytext); }
+">>" { TOKEN(SHR, "Operator (bitwise): " << yytext); }
+"&" { TOKEN(AMPERSAND, "Operator (bitwise): " << yytext); }
+"|" { TOKEN(PIPE, "Operator (bitwise): " << yytext); }
+"^" { TOKEN(CARET, "Operator (bitwise): " << yytext); }
+"~" { TOKEN(TILDE, "Operator (bitwise): " << yytext); }
 
     /* Operators (assignment) */
 
-"<<=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-">>=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"+=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"-=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"*=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"/=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"%=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"&=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"|=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"^=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"+%=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"-%=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"*%=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"+|=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"-|=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"*|=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"<<|=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
-"=" { std::cout << "Operator (assignment): " << yytext << '\n'; }
+"<<=" { TOKEN(SHL_EQUAL, "Operator (assignment): " << yytext); }
+">>=" { TOKEN(SHR_EQUAL, "Operator (assignment): " << yytext); }
+"+=" { TOKEN(PLUS_EQUAL, "Operator (assignment): " << yytext); }
+"-=" { TOKEN(MINUS_EQUAL, "Operator (assignment): " << yytext); }
+"*=" { TOKEN(ASTERISK_EQUAL, "Operator (assignment): " << yytext); }
+"/=" { TOKEN(SLASH_EQUAL, "Operator (assignment): " << yytext); }
+"%=" { TOKEN(PERCENT_EQUAL, "Operator (assignment): " << yytext); }
+"&=" { TOKEN(AMPERSAND_EQUAL, "Operator (assignment): " << yytext); }
+"|=" { TOKEN(PIPE_EQUAL, "Operator (assignment): " << yytext); }
+"^=" { TOKEN(CARET_EQUAL, "Operator (assignment): " << yytext); }
+"+%=" { TOKEN(PLUS_PERCENT_EQUAL, "Operator (assignment): " << yytext); }
+"-%=" { TOKEN(MINUS_PERCENT_EQUAL, "Operator (assignment): " << yytext); }
+"*%=" { TOKEN(ASTERISK_PERCENT_EQUAL, "Operator (assignment): " << yytext); }
+"+|=" { TOKEN(PLUS_PIPE_EQUAL, "Operator (assignment): " << yytext); }
+"-|=" { TOKEN(MINUS_PIPE_EQUAL, "Operator (assignment): " << yytext); }
+"*|=" { TOKEN(ASTERISK_PIPE_EQUAL, "Operator (assignment): " << yytext); }
+"<<|=" { TOKEN(SHL_PIPE_EQUAL, "Operator (assignment): " << yytext); }
+"=" { TOKEN(EQUAL, "Operator (assignment): " << yytext); }
 
     /* Operators (other) */
 
-".*" { std::cout << "Operator (struct deref): " << yytext << '\n'; }
-".?" { std::cout << "Operator (optional unwrap): " << yytext << '\n'; }
-"..." { std::cout << "Operator (range): " << yytext << '\n'; }
-".." { std::cout << "Operator (range): " << yytext << '\n'; }
-"=>" { std::cout << "Operator (switch prong): " << yytext << '\n'; }
-"||" { std::cout << "Operator (error set merge): " << yytext << '\n'; }
-"." { std::cout << "Operator (member): " << yytext << '\n'; }
-"?" { std::cout << "Operator (optional): " << yytext << '\n'; }
+".*" { TOKEN(DOT_ASTERISK, "Operator (struct deref): " << yytext); }
+".?" { TOKEN(DOT_QUESTION, "Operator (optional unwrap): " << yytext); }
+"..." { TOKEN(ELLIPSIS3, "Operator (range): " << yytext); }
+".." { TOKEN(ELLIPSIS2, "Operator (range): " << yytext); }
+"=>" { TOKEN(EQUAL_ARROW, "Operator (switch prong): " << yytext); }
+"||" { TOKEN(PIPE_PIPE, "Operator (error set merge): " << yytext); }
+"." { TOKEN(DOT, "Operator (member): " << yytext); }
+"?" { TOKEN(QUESTION, "Operator (optional): " << yytext); }
 
 [ \t\r\n]+ { /* ignored */ }
 
@@ -317,8 +341,9 @@ f128 { std::cout << "Float type: " << yytext << '\n'; }
 %%
 
 /*! Print an error in the format "error: <message> in line: <line>". */
-static void report(int line, const std::string& message) {
+void report(int line, const std::string& message) {
     std::cerr << "error: " << message << " in line: " << line << '\n';
+    ++error_count;
 }
 
 /*! Get type of literal that lexer reads in a start condition.
@@ -390,25 +415,4 @@ static double float_value(const char* text) {
     double value = strtod(digits.c_str(), nullptr);
 
     return value;
-}
-
-int main(int argc, char* argv[]) {
-    extern FILE* yyin;
-
-    if (argc < 2) {
-        std::cerr << "Missing command line argument (source file path)!\n";
-        return 1;
-    }
-
-    yyin = fopen(argv[1], "r");
-
-    if (!yyin) {
-        std::cout << "File was not found!\n";
-        return 1;
-    }
-
-    yylex();
-
-    fclose(yyin);
-    return 0;
 }

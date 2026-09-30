@@ -1,0 +1,118 @@
+Source file
+  Variable declaration: const
+    Identifier: precedence
+    Value
+      Binary operator: or
+        Identifier: a
+        Binary operator: and
+          Identifier: b
+          Binary operator: ==
+            Identifier: c
+            Binary operator: |
+              Identifier: d
+              Binary operator: <<
+                Identifier: e
+                Binary operator: +
+                  Identifier: f
+                  Binary operator: *
+                    Identifier: g
+                    Identifier: h
+  Variable declaration: const
+    Identifier: left
+    Value
+      Binary operator: -
+        Binary operator: -
+          Identifier: a
+          Identifier: b
+        Identifier: c
+  Variable declaration: const
+    Identifier: prefix
+    Value
+      Binary operator: *
+        Unary operator: -
+          Identifier: a
+        Unary operator: !
+          Member access
+            Identifier: b
+            Identifier: c
+  Variable declaration: const
+    Identifier: suffix
+    Value
+      Call
+        Optional unwrap
+          Dereference
+            Index
+              Member access
+                Identifier: a
+                Identifier: b
+              Integer literal: 0
+        Integer literal: 1
+        Integer literal: 2
+  Variable declaration: const
+    Identifier: error_union
+    Value
+      Binary operator: orelse
+        Binary operator: catch
+          Unary operator: try
+            Identifier: a
+          Capture
+            Identifier: err
+          Identifier: b
+        Identifier: c
+  Variable declaration: const
+    Identifier: grouping
+    Value
+      Binary operator: *
+        Binary operator: +
+          Identifier: a
+          Identifier: b
+        Identifier: c
+  Variable declaration: const
+    Identifier: comparison
+    Value
+      Binary operator: <
+        Binary operator: +
+          Identifier: a
+          Identifier: b
+        Identifier: c
+  Variable declaration: const
+    Identifier: branch
+    Value
+      If
+        Identifier: a
+        Identifier: b
+        Else
+          Binary operator: +
+            Identifier: c
+            Integer literal: 1
+  Variable declaration: const
+    Identifier: unwrap
+    Value
+      Binary operator: orelse
+        Identifier: a
+        Return
+  Variable declaration: const
+    Identifier: handled
+    Value
+      Binary operator: catch
+        Identifier: a
+        Capture
+          Identifier: err
+        Switch
+          Identifier: err
+          Prong
+            Cases
+              Keyword: else
+            Integer literal: 0
+  Variable declaration: const
+    Identifier: tail
+    Value
+      Binary operator: orelse
+        Identifier: a
+        Block
+          Label
+            Identifier: blk
+          Break
+            Label
+              Identifier: blk
+            Integer literal: 1

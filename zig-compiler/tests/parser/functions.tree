@@ -1,0 +1,112 @@
+Source file
+  Function declaration
+    Identifier: empty
+    Parameters
+    Return type
+      Void type: void
+    Block
+  Function declaration
+    Keyword: pub
+    Identifier: add
+    Parameters
+      Parameter
+        Keyword: comptime
+        Identifier: T
+        Type
+          Type: type
+      Parameter
+        Identifier: x
+        Type
+          Identifier: T
+      Parameter
+        Identifier: y
+        Type
+          Identifier: T
+    Return type
+      Identifier: T
+    Block
+      Return
+        Binary operator: +
+          Identifier: x
+          Identifier: y
+  Function declaration
+    Identifier: read
+    Parameters
+      Parameter
+        Keyword: noalias
+        Identifier: buffer
+        Type
+          Slice type
+            Unsigned integer type: u8
+      Parameter
+        Identifier: value
+        Type
+          Keyword: anytype
+    Return type
+      Error union type: inferred error set
+        Usize type: usize
+    Block
+      Return
+        Member access
+          Identifier: buffer
+          Identifier: len
+  Function declaration
+    Keyword: extern
+      String literal: c
+    Identifier: printf
+    Parameters
+      Parameter
+        Identifier: format
+        Type
+          Pointer type: [*]
+            Sentinel
+              Integer literal: 0
+            Keyword: const
+            Unsigned integer type: u8
+      Variadic parameter
+    Return type
+      C int type: c_int
+  Function declaration
+    Keyword: export
+    Identifier: callback
+    Parameters
+      Parameter
+        Identifier: code
+        Type
+          Signed integer type: i32
+    Calling convention
+      Enum literal
+        Identifier: c
+    Return type
+      Void type: void
+    Block
+  Function declaration
+    Keyword: inline
+    Identifier: fail
+    Parameters
+    Return type
+      Error union type
+        Error set
+          Identifier: Oops
+        Void type: void
+    Block
+      Return
+        Error value
+          Identifier: Oops
+  Variable declaration: const
+    Identifier: Handler
+    Value
+      Pointer type: *
+        Keyword: const
+        Function type
+          Parameters
+            Parameter
+              Type
+                Unsigned integer type: u32
+            Parameter
+              Type
+                Optional type
+                  Pointer type: *
+                    Anyopaque type: anyopaque
+          Return type
+            Bool type: bool
