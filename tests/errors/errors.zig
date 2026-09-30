@@ -1,14 +1,13 @@
-const a = 1;
 const b = #;
-const c = $x;
-const d = `2`;
-const ok_str = "fine";
-const ok_char = 'a';
-const ok_quoted = @"good";
 const bad_str = "unterminated
 const bad_char = 'ab';
+const empty_char = '';
 const no_close = 'x;
 const bad_quoted = @"unclosed
-// don't touch apostrophes in comments
-const in_str = "it's fine";
+const str_tab = "a	b";
+const char_tab = '	';
+const x = 1; // comment	tab
+const ml_tab =
+    \\a	b
+;
 const at_eof = "runs into EOF

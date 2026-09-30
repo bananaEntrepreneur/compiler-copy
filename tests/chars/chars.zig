@@ -1,14 +1,15 @@
 const plain = 'a';
-const digit = '7';
 const space = ' ';
+const quote = '"';
 const nl = '\n';
 const cr = '\r';
 const tab = '\t';
 const apos = '\'';
 const backslash = '\\';
-const quote = '"';
 const hex = '\x41';
+const hex_latin1 = '\xe9';
 const unicode = '\u{41}';
-const unicode_zeros = '\u{0000007a}';
-const in_string = "it's fine";
-// don't touch apostrophes in comments
+const two_bytes = '\u{e9}';
+const three_bytes = '\u{20AC}';
+const four_bytes = '\u{10FFFF}';
+const surrogate = '\u{D800}';

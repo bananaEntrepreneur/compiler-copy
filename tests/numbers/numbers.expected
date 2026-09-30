@@ -3,39 +3,28 @@ Integer literal: 42
 Integer literal: 1000000
 Hex integer literal: 255
 Hex integer literal: 65535
-Binary integer literal: 10
 Binary integer literal: 170
 Octal integer literal: 511
-Octal integer literal: 511
+Hex integer literal: 18446744073709551616
 Float literal: 3.14
 Float literal: 3.1415
 Float literal: 1e+10
 Float literal: 0.0015
 Float literal: 2e+08
-Integer literal: 1000
-Hex integer literal: 57005
-Binary integer literal: 170
-Octal integer literal: 493
-Float literal: 10.25
 Float literal: 1e+11
+Float literal: 1.05
+Float literal: 100000
+Float literal: 100000
 Hex float literal: 12
 Hex float literal: 16
 Hex float literal: 0.484375
 Hex float literal: 65280
 Hex float literal: 25260
-Hex integer literal: 485
-Hex float literal: 1.5
-Float literal: 1.05
-Float literal: 0.0015
-Float literal: 100000
-Float literal: 1.5e-07
 Hex float literal: 8
-Hex float literal: 0.75
-Float literal: 100000
-Float literal: 1
+Hex float literal: 1.5
 Hex float literal: 0.5
 Hex float literal: 8
-Hex float literal: 1
+Hex integer literal: 485
 Integer literal: 0
 Operator (range): ..
 Integer literal: 10

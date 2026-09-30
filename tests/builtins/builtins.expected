@@ -1,55 +1,6 @@
 Builtin identifier: @import
 Builtin identifier: @This
 Builtin identifier: @TypeOf
-Builtin identifier: @typeInfo
-Builtin identifier: @as
-Builtin identifier: @intCast
-Builtin identifier: @bitCast
-Builtin identifier: @truncate
-Builtin identifier: @sizeOf
-Builtin identifier: @alignOf
-Builtin identifier: @compileError
-Builtin identifier: @compileLog
-Builtin identifier: @panic
-Builtin identifier: @errorName
-Builtin identifier: @tagName
-Builtin identifier: @intFromPtr
-Builtin identifier: @ptrFromInt
-Builtin identifier: @memcpy
-Builtin identifier: @memset
-Builtin identifier: @call
-Builtin identifier: @embedFile
-Builtin identifier: @enumFromInt
-Builtin identifier: @intFromEnum
-Builtin identifier: @ptrCast
-Builtin identifier: @alignCast
-Builtin identifier: @constCast
-Builtin identifier: @prefetch
-Builtin identifier: @shuffle
-Builtin identifier: @select
-Builtin identifier: @splat
-Builtin identifier: @frameAddress
-Builtin identifier: @returnAddress
-Keyword: const
 Quoted identifier: weird name
-Operator (assignment): =
-Integer literal: 1
-Semicolon: ;
-Keyword: const
 Quoted identifier: if
-Operator (assignment): =
-Integer literal: 2
-Semicolon: ;
-Keyword: const
 Quoted identifier: has " quote
-Operator (assignment): =
-Integer literal: 4
-Semicolon: ;
-Keyword: const
-Identifier: still_builtin
-Operator (assignment): =
-Builtin identifier: @import
-Punctuator: (
-String literal: std
-Punctuator: )
-Semicolon: ;

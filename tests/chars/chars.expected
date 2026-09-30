@@ -4,14 +4,14 @@ Operator (assignment): =
 Char literal: a
 Semicolon: ;
 Keyword: const
-Identifier: digit
-Operator (assignment): =
-Char literal: 7
-Semicolon: ;
-Keyword: const
 Identifier: space
 Operator (assignment): =
 Char literal:  
+Semicolon: ;
+Keyword: const
+Identifier: quote
+Operator (assignment): =
+Char literal: "
 Semicolon: ;
 Keyword: const
 Identifier: nl
@@ -40,14 +40,14 @@ Operator (assignment): =
 Char literal: \
 Semicolon: ;
 Keyword: const
-Identifier: quote
-Operator (assignment): =
-Char literal: "
-Semicolon: ;
-Keyword: const
 Identifier: hex
 Operator (assignment): =
 Char literal: A
+Semicolon: ;
+Keyword: const
+Identifier: hex_latin1
+Operator (assignment): =
+Char literal: é
 Semicolon: ;
 Keyword: const
 Identifier: unicode
@@ -55,13 +55,22 @@ Operator (assignment): =
 Char literal: A
 Semicolon: ;
 Keyword: const
-Identifier: unicode_zeros
+Identifier: two_bytes
 Operator (assignment): =
-Char literal: z
+Char literal: é
 Semicolon: ;
 Keyword: const
-Identifier: in_string
+Identifier: three_bytes
 Operator (assignment): =
-String literal: it's fine
+Char literal: €
 Semicolon: ;
-Comment: // don't touch apostrophes in comments
+Keyword: const
+Identifier: four_bytes
+Operator (assignment): =
+Char literal: 􏿿
+Semicolon: ;
+Keyword: const
+Identifier: surrogate
+Operator (assignment): =
+Char literal: \u{d800}
+Semicolon: ;

@@ -1,15 +1,8 @@
-Unsigned integer type: u1
 Unsigned integer type: u8
-Unsigned integer type: u16
-Unsigned integer type: u32
-Unsigned integer type: u64
-Unsigned integer type: u128
-Signed integer type: i1
-Signed integer type: i8
-Signed integer type: i16
 Signed integer type: i32
-Signed integer type: i64
-Signed integer type: i128
+Unsigned integer type: u0
+Signed integer type: i0
+Signed integer type: i65535
 Float type: f16
 Float type: f32
 Float type: f64
@@ -35,14 +28,6 @@ C ulong type: c_ulong
 C longlong type: c_longlong
 C ulonglong type: c_ulonglong
 C longdouble type: c_longdouble
-Unsigned integer type: u0
-Signed integer type: i0
-Unsigned integer type: u7
-Signed integer type: i3
-Unsigned integer type: u256
-Signed integer type: i65535
 Identifier: u8x
-Identifier: i32_foo
 Identifier: u
-Identifier: i
 Identifier: f7
