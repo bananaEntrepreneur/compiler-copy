@@ -1,2 +1,0 @@
-fn f() void {
-    return;
