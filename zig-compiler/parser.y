@@ -1,4 +1,4 @@
-/* Parser of Zig 0.17 for the lexer in lexer.l.
+/* Grammar rules of Zig 0.17 for the lexer in lexer.l. No semantic actions yet.
  *
  * The grammar follows the one in the Zig language reference, rewritten for
  * LALR(1). The nonterminals are named after it: expr is Expr, prefix_expr is
@@ -22,76 +22,24 @@
  * Not supported: asm, async (suspend, resume, nosuspend, anyframe), tuple-like
  * struct fields ('struct { u8, bool }') and 'if' right after '?' or '!' inside
  * an expression (in the type of a field or a declaration it is allowed).
- *
- * The result is the parse tree: printed as an indented list, or with --dot in
- * the DOT language of Graphviz.
  */
 
-%code requires {
-#include <string>
-
-struct Node;
-}
-
-%code {
-#include <cstdio>
-#include <iostream>
-#include <vector>
-
-/*! A node of the parse tree: what the construct is, and its parts in source order. */
-struct Node {
-    std::string label;
-    std::vector<Node*> children;
-
-    explicit Node(const std::string& label) : label(label) {}
-
-    ~Node() {
-        for (Node* child : children) {
-            delete child;
-        }
-    }
-};
-
+%{
 int yylex();
 void yyerror(const char* message);
-void report(int line, const std::string& message); // lexer.l
-extern int yylineno;
-
-static Node* tree; // the source file, set once it is parsed
-
-static Node* node(const std::string& label, std::initializer_list<Node*> children = {});
-static Node* leaf(std::string* text);
-static Node* add(Node* parent, Node* child);
-static Node* prepend(Node* parent, Node* child);
-static Node* rename(Node* list, const std::string& label);
-static Node* concat(Node* list, Node* tail);
-static Node* labeled(std::string* label, Node* construct);
-static Node* modify(Node* declaration, Node* pub, Node* modifiers);
-static Node* binary(const char* op, Node* left, Node* right);
-static Node* pointer(const std::string& label, Node* modifiers, Node* element);
-}
-
-%define parse.error detailed
-
-%union {
-    std::string* text; /* text of the token, as the lexer prints it */
-    Node* node;
-    const char* op;
-}
-
-%destructor { delete $$; } <text> <node>
+%}
 
 %token END 0 "end of file"
 
-%token <text> IDENTIFIER "identifier"
-%token <text> BUILTIN "builtin function"
-%token <text> PRIMITIVE_TYPE "primitive type"
-%token <text> INTEGER_LITERAL "integer literal"
-%token <text> FLOAT_LITERAL "float literal"
-%token <text> CHAR_LITERAL "character literal"
-%token <text> STRING_LITERAL "string literal"
-%token <text> MULTILINE_STRING_LITERAL "multiline string literal"
-%token <text> KW_TRUE "'true'" KW_FALSE "'false'" KW_NULL "'null'" KW_UNDEFINED "'undefined'"
+%token IDENTIFIER "identifier"
+%token BUILTIN "builtin function"
+%token PRIMITIVE_TYPE "primitive type"
+%token INTEGER_LITERAL "integer literal"
+%token FLOAT_LITERAL "float literal"
+%token CHAR_LITERAL "character literal"
+%token STRING_LITERAL "string literal"
+%token MULTILINE_STRING_LITERAL "multiline string literal"
+%token KW_TRUE "'true'" KW_FALSE "'false'" KW_NULL "'null'" KW_UNDEFINED "'undefined'"
 
 %token KW_ADDRSPACE "'addrspace'" KW_ALIGN "'align'" KW_ALLOWZERO "'allowzero'" KW_AND "'and'"
 %token KW_ANYFRAME "'anyframe'" KW_ANYTYPE "'anytype'" KW_ASM "'asm'" KW_BREAK "'break'"
@@ -150,27 +98,10 @@ static Node* pointer(const std::string& label, Node* modifiers, Node* element);
 
 %expect 1
 
-%type <node> container_members declarations nonempty_declarations fields field value_opt
-%type <node> declaration pub_opt linkage fn_modifiers var_modifiers var_declaration var_proto
-%type <node> fn_proto type_opt align_opt addrspace_opt linksection_opt callconv_opt
-%type <node> return_type decl_type if_type_expr
-%type <node> parameters parameter_list parameter param_modifier param_type
-%type <node> block statements statement block_expr body_expr destructure destructure_targets
-%type <node> if_statement if_prefix loop_statement for_statement while_statement
-%type <node> for_prefix for_inputs for_input while_prefix continue_opt
-%type <node> full_expr labeled_expr branch assign_expr plain_assign plain_expr
-%type <node> expr prefix_expr primary_expr jump break_label if_expr loop_expr for_expr while_expr
-%type <node> switch_expr switch_prongs prong_list switch_prong switch_case switch_items
-%type <node> switch_item prong_body curly_expr type_expr pointer_modifiers error_union_expr
-%type <node> suffix_expr arguments argument_list primary_type_expr name error_names
-%type <node> error_name_list container_decl container_kind init_list field_inits field_init
-%type <node> init_elements capture_opt capture captures capture_item payload_opt
-%type <op> assign_op compare_op bitwise_op bit_shift_op addition_op multiply_op prefix_op
-
 %%
 
 source_file
-    : container_members                                   { tree = rename($1, "Source file"); }
+    : container_members
     ;
 
     /* ---------------- Members of a file, struct, enum, union or opaque ---------------- */
@@ -179,100 +110,95 @@ source_file
 
 container_members
     : declarations
-    | declarations fields                                 { $$ = concat($1, $2); }
+    | declarations fields
     ;
 
 declarations
-    : %empty                                              { $$ = new Node("Members"); }
-    | declarations declaration                            { $$ = add($1, $2); }
+    : %empty
+    | declarations declaration
     ;
 
 nonempty_declarations
-    : declaration                                         { $$ = node("Members", {$1}); }
-    | nonempty_declarations declaration                   { $$ = add($1, $2); }
+    : declaration
+    | nonempty_declarations declaration
     ;
 
 fields
-    : field                                               { $$ = node("Members", {$1}); }
-    | field COMMA                                         { $$ = node("Members", {$1}); }
-    | field COMMA fields                                  { $$ = prepend($3, $1); }
-    | field COMMA nonempty_declarations                   { $$ = prepend($3, $1); }
+    : field
+    | field COMMA
+    | field COMMA fields
+    | field COMMA nonempty_declarations
     ;
 
     /* A struct or union field has a type; an enum field has only a name and maybe a value */
 
 field
-    : name value_opt                                      { $$ = node("Field", {$1, $2}); }
-    | name COLON decl_type align_opt value_opt            { $$ = node("Field", {$1, node("Type", {$3}), $4, $5}); }
+    : name value_opt
+    | name COLON decl_type align_opt value_opt
     | KW_COMPTIME name COLON decl_type align_opt value_opt
-                                                          { $$ = node("Field", {new Node("Keyword: comptime"), $2, node("Type", {$4}), $5, $6}); }
     ;
 
 value_opt
-    : %empty                                              { $$ = nullptr; }
-    | EQUAL full_expr                                     { $$ = node("Value", {$2}); }
+    : %empty
+    | EQUAL full_expr
     ;
 
 declaration
-    : pub_opt fn_modifiers fn_proto block                 { $$ = add(modify($3, $1, $2), $4); }
-    | pub_opt fn_modifiers fn_proto SEMICOLON             { $$ = modify($3, $1, $2); }
-    | pub_opt var_modifiers var_declaration               { $$ = modify($3, $1, $2); }
-    | KW_COMPTIME block                                   { $$ = node("Comptime", {$2}); }
-    | KW_TEST STRING_LITERAL block                        { $$ = node("Test declaration", {leaf($2), $3}); }
-    | KW_TEST IDENTIFIER block                            { $$ = node("Test declaration", {leaf($2), $3}); }
-    | KW_TEST block                                       { $$ = node("Test declaration", {$2}); }
+    : pub_opt fn_modifiers fn_proto block
+    | pub_opt fn_modifiers fn_proto SEMICOLON
+    | pub_opt var_modifiers var_declaration
+    | KW_COMPTIME block
+    | KW_TEST STRING_LITERAL block
+    | KW_TEST IDENTIFIER block
+    | KW_TEST block
     ;
 
 pub_opt
-    : %empty                                              { $$ = nullptr; }
-    | KW_PUB                                              { $$ = new Node("Keyword: pub"); }
+    : %empty
+    | KW_PUB
     ;
 
-    /* Modifiers come as a list node; the declaration takes its children */
-
 linkage
-    : %empty                                              { $$ = new Node("Modifiers"); }
-    | KW_EXPORT                                           { $$ = node("Modifiers", {new Node("Keyword: export")}); }
-    | KW_EXTERN                                           { $$ = node("Modifiers", {new Node("Keyword: extern")}); }
-    | KW_EXTERN STRING_LITERAL                            { $$ = node("Modifiers", {node("Keyword: extern", {leaf($2)})}); }
+    : %empty
+    | KW_EXPORT
+    | KW_EXTERN
+    | KW_EXTERN STRING_LITERAL
     ;
 
 fn_modifiers
     : linkage
-    | KW_INLINE                                           { $$ = node("Modifiers", {new Node("Keyword: inline")}); }
-    | KW_NOINLINE                                         { $$ = node("Modifiers", {new Node("Keyword: noinline")}); }
+    | KW_INLINE
+    | KW_NOINLINE
     ;
 
 var_modifiers
     : linkage
-    | linkage KW_THREADLOCAL                              { $$ = add($1, new Node("Keyword: threadlocal")); }
+    | linkage KW_THREADLOCAL
     ;
 
 var_declaration
     : KW_CONST IDENTIFIER type_opt align_opt addrspace_opt linksection_opt value_opt SEMICOLON
-                                                          { $$ = node("Variable declaration: const", {leaf($2), $3, $4, $5, $6, $7}); }
     | KW_VAR IDENTIFIER type_opt align_opt addrspace_opt linksection_opt value_opt SEMICOLON
-                                                          { $$ = node("Variable declaration: var", {leaf($2), $3, $4, $5, $6, $7}); }
     ;
 
 type_opt
-    : %empty                                              { $$ = nullptr; }
-    | COLON decl_type                                     { $$ = node("Type", {$2}); }
+    : %empty
+    | COLON decl_type
     ;
 
 align_opt
-    : %empty                                              { $$ = nullptr; }
-    | KW_ALIGN LPAREN expr RPAREN                         { $$ = node("Align", {$3}); }
+    : %empty
+    | KW_ALIGN LPAREN expr RPAREN
     ;
 
 addrspace_opt
-    : %empty                                              { $$ = nullptr; }
-    | KW_ADDRSPACE LPAREN expr RPAREN                     { $$ = node("Address space", {$3}); }
+    : %empty
+    | KW_ADDRSPACE LPAREN expr RPAREN
     ;
 
 linksection_opt
-    : %empty                                              { $$ = nullptr; }
-    | KW_LINKSECTION LPAREN expr RPAREN                   { $$ = node("Link section", {$3}); }
+    : %empty
+    | KW_LINKSECTION LPAREN expr RPAREN
     ;
 
     /* The type of a declaration, a field, a parameter or a returned value */
@@ -282,86 +208,85 @@ decl_type
     : type_expr
     | if_type_expr
     | switch_expr
-    | QUESTION if_type_expr                               { $$ = node("Optional type", {$2}); }
+    | QUESTION if_type_expr
     ;
 
 if_type_expr
-    : if_prefix decl_type %prec LOWER_THAN_ELSE           { $$ = add($1, $2); }
-    | if_prefix decl_type KW_ELSE payload_opt decl_type   { $$ = add(add($1, $2), node("Else", {$4, $5})); }
+    : if_prefix decl_type %prec LOWER_THAN_ELSE
+    | if_prefix decl_type KW_ELSE payload_opt decl_type
     ;
 
     /* ---------------- Functions ---------------- */
 
 fn_proto
     : KW_FN IDENTIFIER LPAREN parameters RPAREN align_opt addrspace_opt linksection_opt callconv_opt return_type
-                                                          { $$ = node("Function declaration", {leaf($2), $4, $6, $7, $8, $9, $10}); }
     ;
 
 callconv_opt
-    : %empty                                              { $$ = nullptr; }
-    | KW_CALLCONV LPAREN expr RPAREN                      { $$ = node("Calling convention", {$3}); }
+    : %empty
+    | KW_CALLCONV LPAREN expr RPAREN
     ;
 
     /* '!T' returns T or an error of a set the compiler infers */
 
 return_type
-    : decl_type                                           { $$ = node("Return type", {$1}); }
-    | BANG decl_type                                      { $$ = node("Return type", {node("Error union type: inferred error set", {$2})}); }
+    : decl_type
+    | BANG decl_type
     ;
 
 parameters
-    : %empty                                              { $$ = new Node("Parameters"); }
+    : %empty
     | parameter_list
     | parameter_list COMMA
     ;
 
 parameter_list
-    : parameter                                           { $$ = node("Parameters", {$1}); }
-    | parameter_list COMMA parameter                      { $$ = add($1, $3); }
+    : parameter
+    | parameter_list COMMA parameter
     ;
 
 parameter
-    : param_modifier name COLON param_type                { $$ = node("Parameter", {$1, $2, node("Type", {$4})}); }
-    | param_modifier param_type                           { $$ = node("Parameter", {$1, node("Type", {$2})}); }
-    | ELLIPSIS3                                           { $$ = new Node("Variadic parameter"); }
+    : param_modifier name COLON param_type
+    | param_modifier param_type
+    | ELLIPSIS3
     ;
 
 param_modifier
-    : %empty                                              { $$ = nullptr; }
-    | KW_COMPTIME                                         { $$ = new Node("Keyword: comptime"); }
-    | KW_NOALIAS                                          { $$ = new Node("Keyword: noalias"); }
+    : %empty
+    | KW_COMPTIME
+    | KW_NOALIAS
     ;
 
 param_type
     : decl_type
-    | KW_ANYTYPE                                          { $$ = new Node("Keyword: anytype"); }
+    | KW_ANYTYPE
     ;
 
     /* ---------------- Statements ---------------- */
 
 block
-    : LBRACE statements RBRACE                            { $$ = $2; }
+    : LBRACE statements RBRACE
     ;
 
 statements
-    : %empty                                              { $$ = new Node("Block"); }
-    | statements statement                                { $$ = add($1, $2); }
+    : %empty
+    | statements statement
     ;
 
 statement
     : var_declaration
-    | KW_COMPTIME var_declaration                         { $$ = node("Comptime", {$2}); }
-    | KW_COMPTIME block_expr                              { $$ = node("Comptime", {$2}); }
-    | KW_COMPTIME body_expr SEMICOLON                     { $$ = node("Comptime", {$2}); }
-    | KW_DEFER block_expr                                 { $$ = node("Defer", {$2}); }
-    | KW_DEFER body_expr SEMICOLON                        { $$ = node("Defer", {$2}); }
-    | KW_ERRDEFER payload_opt block_expr                  { $$ = node("Errdefer", {$2, $3}); }
-    | KW_ERRDEFER payload_opt body_expr SEMICOLON         { $$ = node("Errdefer", {$2, $3}); }
+    | KW_COMPTIME var_declaration
+    | KW_COMPTIME block_expr
+    | KW_COMPTIME body_expr SEMICOLON
+    | KW_DEFER block_expr
+    | KW_DEFER body_expr SEMICOLON
+    | KW_ERRDEFER payload_opt block_expr
+    | KW_ERRDEFER payload_opt body_expr SEMICOLON
     | if_statement
     | loop_statement
-    | IDENTIFIER COLON loop_statement                     { $$ = labeled($1, $3); }
+    | IDENTIFIER COLON loop_statement
     | switch_expr
-    | IDENTIFIER COLON switch_expr                        { $$ = labeled($1, $3); }
+    | IDENTIFIER COLON switch_expr
     | block_expr
     | jump SEMICOLON
     | destructure SEMICOLON
@@ -370,7 +295,7 @@ statement
 
 block_expr
     : block
-    | IDENTIFIER COLON block                              { $$ = labeled($1, $3); }
+    | IDENTIFIER COLON block
     ;
 
     /* The body of if, while, for or defer that is not a block: ';' or 'else' comes after it */
@@ -381,88 +306,85 @@ body_expr
     | if_expr
     | loop_expr
     | switch_expr
-    | IDENTIFIER COLON loop_expr                          { $$ = labeled($1, $3); }
-    | IDENTIFIER COLON switch_expr                        { $$ = labeled($1, $3); }
-    | KW_COMPTIME branch                                  { $$ = node("Comptime", {$2}); }
+    | IDENTIFIER COLON loop_expr
+    | IDENTIFIER COLON switch_expr
+    | KW_COMPTIME branch
     ;
 
 if_statement
-    : if_prefix block_expr %prec LOWER_THAN_ELSE          { $$ = add($1, $2); }
-    | if_prefix block_expr KW_ELSE payload_opt statement  { $$ = add(add($1, $2), node("Else", {$4, $5})); }
-    | if_prefix body_expr SEMICOLON                       { $$ = add($1, $2); }
-    | if_prefix body_expr KW_ELSE payload_opt statement   { $$ = add(add($1, $2), node("Else", {$4, $5})); }
+    : if_prefix block_expr %prec LOWER_THAN_ELSE
+    | if_prefix block_expr KW_ELSE payload_opt statement
+    | if_prefix body_expr SEMICOLON
+    | if_prefix body_expr KW_ELSE payload_opt statement
     ;
 
 if_prefix
-    : KW_IF LPAREN full_expr RPAREN capture_opt           { $$ = node("If", {$3, $5}); }
+    : KW_IF LPAREN full_expr RPAREN capture_opt
     ;
 
 loop_statement
     : for_statement
     | while_statement
-    | KW_INLINE for_statement                             { $$ = prepend($2, new Node("Keyword: inline")); }
-    | KW_INLINE while_statement                           { $$ = prepend($2, new Node("Keyword: inline")); }
+    | KW_INLINE for_statement
+    | KW_INLINE while_statement
     ;
 
 for_statement
-    : for_prefix block_expr %prec LOWER_THAN_ELSE         { $$ = add($1, $2); }
-    | for_prefix block_expr KW_ELSE statement             { $$ = add(add($1, $2), node("Else", {$4})); }
-    | for_prefix body_expr SEMICOLON                      { $$ = add($1, $2); }
-    | for_prefix body_expr KW_ELSE statement              { $$ = add(add($1, $2), node("Else", {$4})); }
+    : for_prefix block_expr %prec LOWER_THAN_ELSE
+    | for_prefix block_expr KW_ELSE statement
+    | for_prefix body_expr SEMICOLON
+    | for_prefix body_expr KW_ELSE statement
     ;
 
 while_statement
-    : while_prefix block_expr %prec LOWER_THAN_ELSE       { $$ = add($1, $2); }
+    : while_prefix block_expr %prec LOWER_THAN_ELSE
     | while_prefix block_expr KW_ELSE payload_opt statement
-                                                          { $$ = add(add($1, $2), node("Else", {$4, $5})); }
-    | while_prefix body_expr SEMICOLON                    { $$ = add($1, $2); }
+    | while_prefix body_expr SEMICOLON
     | while_prefix body_expr KW_ELSE payload_opt statement
-                                                          { $$ = add(add($1, $2), node("Else", {$4, $5})); }
     ;
 
 for_prefix
-    : KW_FOR LPAREN for_inputs comma_opt RPAREN capture   { $$ = node("For", {$3, $6}); }
+    : KW_FOR LPAREN for_inputs comma_opt RPAREN capture
     ;
 
 for_inputs
-    : for_input                                           { $$ = node("Inputs", {$1}); }
-    | for_inputs COMMA for_input                          { $$ = add($1, $3); }
+    : for_input
+    | for_inputs COMMA for_input
     ;
 
 for_input
     : expr
-    | expr ELLIPSIS2                                      { $$ = node("Range", {$1}); }
-    | expr ELLIPSIS2 expr                                 { $$ = node("Range", {$1, $3}); }
+    | expr ELLIPSIS2
+    | expr ELLIPSIS2 expr
     ;
 
 while_prefix
     : KW_WHILE LPAREN full_expr RPAREN capture_opt continue_opt
-                                                          { $$ = node("While", {$3, $5, $6}); }
     ;
 
 continue_opt
-    : %empty                                              { $$ = nullptr; }
-    | COLON LPAREN assign_expr RPAREN                     { $$ = node("Continue expression", {$3}); }
+    : %empty
+    | COLON LPAREN assign_expr RPAREN
     ;
 
     /* 'const a, var b: T, c.d = f();' */
 
 destructure
-    : destructure_targets EQUAL full_expr                 { $$ = add($1, node("Value", {$3})); }
+    : destructure_targets EQUAL full_expr
     ;
 
 destructure_targets
-    : var_proto COMMA var_proto                           { $$ = node("Destructuring", {$1, $3}); }
-    | var_proto COMMA expr                                { $$ = node("Destructuring", {$1, $3}); }
-    | plain_expr COMMA var_proto                          { $$ = node("Destructuring", {$1, $3}); }
-    | plain_expr COMMA expr                               { $$ = node("Destructuring", {$1, $3}); }
-    | destructure_targets COMMA var_proto                 { $$ = add($1, $3); }
-    | destructure_targets COMMA expr                      { $$ = add($1, $3); }
+    : var_proto COMMA var_proto
+    | var_proto COMMA expr
+    | plain_expr COMMA var_proto
+    | plain_expr COMMA expr
+    | destructure_targets COMMA var_proto
+    | destructure_targets COMMA expr
     ;
 
 var_proto
-    : KW_CONST IDENTIFIER type_opt                        { $$ = node("Variable declaration: const", {leaf($2), $3}); }
-    | KW_VAR IDENTIFIER type_opt                          { $$ = node("Variable declaration: var", {leaf($2), $3}); }
+    : KW_CONST IDENTIFIER type_opt
+    | KW_VAR IDENTIFIER type_opt
     ;
 
     /* ---------------- Expressions ---------------- */
@@ -471,12 +393,12 @@ var_proto
 
 plain_assign
     : plain_expr
-    | plain_expr assign_op full_expr                      { $$ = node(std::string("Assignment: ") + $2, {$1, $3}); }
+    | plain_expr assign_op full_expr
     ;
 
 assign_expr
     : expr
-    | expr assign_op full_expr                            { $$ = node(std::string("Assignment: ") + $2, {$1, $3}); }
+    | expr assign_op full_expr
     ;
 
 full_expr
@@ -485,25 +407,25 @@ full_expr
     ;
 
 labeled_expr
-    : IDENTIFIER COLON block                              { $$ = labeled($1, $3); }
-    | IDENTIFIER COLON loop_expr                          { $$ = labeled($1, $3); }
-    | IDENTIFIER COLON switch_expr                        { $$ = labeled($1, $3); }
+    : IDENTIFIER COLON block
+    | IDENTIFIER COLON loop_expr
+    | IDENTIFIER COLON switch_expr
     ;
 
 expr
-    : expr KW_OR expr                                     { $$ = binary("or", $1, $3); }
-    | expr KW_OR labeled_expr                             { $$ = binary("or", $1, $3); }
-    | expr KW_AND expr                                    { $$ = binary("and", $1, $3); }
-    | expr KW_AND labeled_expr                            { $$ = binary("and", $1, $3); }
-    | expr compare_op expr %prec EQUAL_EQUAL              { $$ = binary($2, $1, $3); }
-    | expr bitwise_op expr %prec AMPERSAND                { $$ = binary($2, $1, $3); }
-    | expr KW_CATCH payload_opt expr                      { $$ = node("Binary operator: catch", {$1, $3, $4}); }
-    | expr KW_CATCH payload_opt labeled_expr              { $$ = node("Binary operator: catch", {$1, $3, $4}); }
-    | expr KW_ORELSE expr                                 { $$ = binary("orelse", $1, $3); }
-    | expr KW_ORELSE labeled_expr                         { $$ = binary("orelse", $1, $3); }
-    | expr bit_shift_op expr %prec SHL                    { $$ = binary($2, $1, $3); }
-    | expr addition_op expr %prec PLUS                    { $$ = binary($2, $1, $3); }
-    | expr multiply_op expr %prec ASTERISK                { $$ = binary($2, $1, $3); }
+    : expr KW_OR expr
+    | expr KW_OR labeled_expr
+    | expr KW_AND expr
+    | expr KW_AND labeled_expr
+    | expr compare_op expr %prec EQUAL_EQUAL
+    | expr bitwise_op expr %prec AMPERSAND
+    | expr KW_CATCH payload_opt expr
+    | expr KW_CATCH payload_opt labeled_expr
+    | expr KW_ORELSE expr
+    | expr KW_ORELSE labeled_expr
+    | expr bit_shift_op expr %prec SHL
+    | expr addition_op expr %prec PLUS
+    | expr multiply_op expr %prec ASTERISK
     | prefix_expr
     ;
 
@@ -511,97 +433,97 @@ expr
     /* break, continue or comptime: at the start of a statement these are statements.  */
 
 plain_expr
-    : plain_expr KW_OR expr                               { $$ = binary("or", $1, $3); }
-    | plain_expr KW_OR labeled_expr                       { $$ = binary("or", $1, $3); }
-    | plain_expr KW_AND expr                              { $$ = binary("and", $1, $3); }
-    | plain_expr KW_AND labeled_expr                      { $$ = binary("and", $1, $3); }
-    | plain_expr compare_op expr %prec EQUAL_EQUAL        { $$ = binary($2, $1, $3); }
-    | plain_expr bitwise_op expr %prec AMPERSAND          { $$ = binary($2, $1, $3); }
-    | plain_expr KW_CATCH payload_opt expr                { $$ = node("Binary operator: catch", {$1, $3, $4}); }
-    | plain_expr KW_CATCH payload_opt labeled_expr        { $$ = node("Binary operator: catch", {$1, $3, $4}); }
-    | plain_expr KW_ORELSE expr                           { $$ = binary("orelse", $1, $3); }
-    | plain_expr KW_ORELSE labeled_expr                   { $$ = binary("orelse", $1, $3); }
-    | plain_expr bit_shift_op expr %prec SHL              { $$ = binary($2, $1, $3); }
-    | plain_expr addition_op expr %prec PLUS              { $$ = binary($2, $1, $3); }
-    | plain_expr multiply_op expr %prec ASTERISK          { $$ = binary($2, $1, $3); }
-    | prefix_op prefix_expr                               { $$ = node(std::string("Unary operator: ") + $1, {$2}); }
+    : plain_expr KW_OR expr
+    | plain_expr KW_OR labeled_expr
+    | plain_expr KW_AND expr
+    | plain_expr KW_AND labeled_expr
+    | plain_expr compare_op expr %prec EQUAL_EQUAL
+    | plain_expr bitwise_op expr %prec AMPERSAND
+    | plain_expr KW_CATCH payload_opt expr
+    | plain_expr KW_CATCH payload_opt labeled_expr
+    | plain_expr KW_ORELSE expr
+    | plain_expr KW_ORELSE labeled_expr
+    | plain_expr bit_shift_op expr %prec SHL
+    | plain_expr addition_op expr %prec PLUS
+    | plain_expr multiply_op expr %prec ASTERISK
+    | prefix_op prefix_expr
     | curly_expr
     ;
 
 assign_op
-    : EQUAL                                               { $$ = "="; }
-    | PLUS_EQUAL                                          { $$ = "+="; }
-    | MINUS_EQUAL                                         { $$ = "-="; }
-    | ASTERISK_EQUAL                                      { $$ = "*="; }
-    | SLASH_EQUAL                                         { $$ = "/="; }
-    | PERCENT_EQUAL                                       { $$ = "%="; }
-    | AMPERSAND_EQUAL                                     { $$ = "&="; }
-    | PIPE_EQUAL                                          { $$ = "|="; }
-    | CARET_EQUAL                                         { $$ = "^="; }
-    | SHL_EQUAL                                           { $$ = "<<="; }
-    | SHR_EQUAL                                           { $$ = ">>="; }
-    | PLUS_PERCENT_EQUAL                                  { $$ = "+%="; }
-    | MINUS_PERCENT_EQUAL                                 { $$ = "-%="; }
-    | ASTERISK_PERCENT_EQUAL                              { $$ = "*%="; }
-    | PLUS_PIPE_EQUAL                                     { $$ = "+|="; }
-    | MINUS_PIPE_EQUAL                                    { $$ = "-|="; }
-    | ASTERISK_PIPE_EQUAL                                 { $$ = "*|="; }
-    | SHL_PIPE_EQUAL                                      { $$ = "<<|="; }
+    : EQUAL
+    | PLUS_EQUAL
+    | MINUS_EQUAL
+    | ASTERISK_EQUAL
+    | SLASH_EQUAL
+    | PERCENT_EQUAL
+    | AMPERSAND_EQUAL
+    | PIPE_EQUAL
+    | CARET_EQUAL
+    | SHL_EQUAL
+    | SHR_EQUAL
+    | PLUS_PERCENT_EQUAL
+    | MINUS_PERCENT_EQUAL
+    | ASTERISK_PERCENT_EQUAL
+    | PLUS_PIPE_EQUAL
+    | MINUS_PIPE_EQUAL
+    | ASTERISK_PIPE_EQUAL
+    | SHL_PIPE_EQUAL
     ;
 
 compare_op
-    : EQUAL_EQUAL                                         { $$ = "=="; }
-    | BANG_EQUAL                                          { $$ = "!="; }
-    | LESS                                                { $$ = "<"; }
-    | GREATER                                             { $$ = ">"; }
-    | LESS_EQUAL                                          { $$ = "<="; }
-    | GREATER_EQUAL                                       { $$ = ">="; }
+    : EQUAL_EQUAL
+    | BANG_EQUAL
+    | LESS
+    | GREATER
+    | LESS_EQUAL
+    | GREATER_EQUAL
     ;
 
 bitwise_op
-    : AMPERSAND                                           { $$ = "&"; }
-    | CARET                                               { $$ = "^"; }
-    | PIPE                                                { $$ = "|"; }
+    : AMPERSAND
+    | CARET
+    | PIPE
     ;
 
 bit_shift_op
-    : SHL                                                 { $$ = "<<"; }
-    | SHR                                                 { $$ = ">>"; }
-    | SHL_PIPE                                            { $$ = "<<|"; }
+    : SHL
+    | SHR
+    | SHL_PIPE
     ;
 
 addition_op
-    : PLUS                                                { $$ = "+"; }
-    | MINUS                                               { $$ = "-"; }
-    | PLUS_PLUS                                           { $$ = "++"; }
-    | PLUS_PERCENT                                        { $$ = "+%"; }
-    | MINUS_PERCENT                                       { $$ = "-%"; }
-    | PLUS_PIPE                                           { $$ = "+|"; }
-    | MINUS_PIPE                                          { $$ = "-|"; }
+    : PLUS
+    | MINUS
+    | PLUS_PLUS
+    | PLUS_PERCENT
+    | MINUS_PERCENT
+    | PLUS_PIPE
+    | MINUS_PIPE
     ;
 
 multiply_op
-    : ASTERISK                                            { $$ = "*"; }
-    | SLASH                                               { $$ = "/"; }
-    | PERCENT                                             { $$ = "%"; }
-    | ASTERISK_ASTERISK                                   { $$ = "**"; }
-    | ASTERISK_PERCENT                                    { $$ = "*%"; }
-    | ASTERISK_PIPE                                       { $$ = "*|"; }
-    | PIPE_PIPE                                           { $$ = "||"; }
+    : ASTERISK
+    | SLASH
+    | PERCENT
+    | ASTERISK_ASTERISK
+    | ASTERISK_PERCENT
+    | ASTERISK_PIPE
+    | PIPE_PIPE
     ;
 
 prefix_expr
-    : prefix_op prefix_expr                               { $$ = node(std::string("Unary operator: ") + $1, {$2}); }
+    : prefix_op prefix_expr
     | primary_expr
     ;
 
 prefix_op
-    : BANG                                                { $$ = "!"; }
-    | MINUS                                               { $$ = "-"; }
-    | TILDE                                               { $$ = "~"; }
-    | MINUS_PERCENT                                       { $$ = "-%"; }
-    | AMPERSAND                                           { $$ = "&"; }
-    | KW_TRY                                              { $$ = "try"; }
+    : BANG
+    | MINUS
+    | TILDE
+    | MINUS_PERCENT
+    | AMPERSAND
+    | KW_TRY
     ;
 
 primary_expr
@@ -611,16 +533,16 @@ primary_expr
     | loop_expr
     | switch_expr
     | jump
-    | KW_COMPTIME branch                                  { $$ = node("Comptime", {$2}); }
+    | KW_COMPTIME branch
     ;
 
 jump
-    : KW_RETURN                                           { $$ = new Node("Return"); }
-    | KW_RETURN branch                                    { $$ = node("Return", {$2}); }
-    | KW_BREAK break_label                                { $$ = node("Break", {$2}); }
-    | KW_BREAK break_label branch                         { $$ = node("Break", {$2, $3}); }
-    | KW_CONTINUE break_label                             { $$ = node("Continue", {$2}); }
-    | KW_CONTINUE break_label branch                      { $$ = node("Continue", {$2, $3}); }
+    : KW_RETURN
+    | KW_RETURN branch
+    | KW_BREAK break_label
+    | KW_BREAK break_label branch
+    | KW_CONTINUE break_label
+    | KW_CONTINUE break_label branch
     ;
 
     /* What an if/else, a loop or a jump ends with */
@@ -631,79 +553,77 @@ branch
     ;
 
 break_label
-    : %empty %prec KW_BREAK                               { $$ = nullptr; }
-    | COLON IDENTIFIER                                    { $$ = node("Label", {leaf($2)}); }
+    : %empty %prec KW_BREAK
+    | COLON IDENTIFIER
     ;
 
 if_expr
-    : if_prefix branch %prec LOWER_THAN_ELSE              { $$ = add($1, $2); }
-    | if_prefix branch KW_ELSE payload_opt branch         { $$ = add(add($1, $2), node("Else", {$4, $5})); }
+    : if_prefix branch %prec LOWER_THAN_ELSE
+    | if_prefix branch KW_ELSE payload_opt branch
     ;
 
 loop_expr
     : for_expr
     | while_expr
-    | KW_INLINE for_expr                                  { $$ = prepend($2, new Node("Keyword: inline")); }
-    | KW_INLINE while_expr                                { $$ = prepend($2, new Node("Keyword: inline")); }
+    | KW_INLINE for_expr
+    | KW_INLINE while_expr
     ;
 
 for_expr
-    : for_prefix branch %prec LOWER_THAN_ELSE             { $$ = add($1, $2); }
-    | for_prefix branch KW_ELSE branch                    { $$ = add(add($1, $2), node("Else", {$4})); }
+    : for_prefix branch %prec LOWER_THAN_ELSE
+    | for_prefix branch KW_ELSE branch
     ;
 
 while_expr
-    : while_prefix branch %prec LOWER_THAN_ELSE           { $$ = add($1, $2); }
-    | while_prefix branch KW_ELSE payload_opt branch      { $$ = add(add($1, $2), node("Else", {$4, $5})); }
+    : while_prefix branch %prec LOWER_THAN_ELSE
+    | while_prefix branch KW_ELSE payload_opt branch
     ;
 
 switch_expr
     : KW_SWITCH LPAREN full_expr RPAREN LBRACE switch_prongs RBRACE
-                                                          { $$ = prepend($6, $3); }
     ;
 
 switch_prongs
-    : %empty                                              { $$ = new Node("Switch"); }
+    : %empty
     | prong_list comma_opt
     ;
 
 prong_list
-    : switch_prong                                        { $$ = node("Switch", {$1}); }
-    | prong_list COMMA switch_prong                       { $$ = add($1, $3); }
+    : switch_prong
+    | prong_list COMMA switch_prong
     ;
 
 switch_prong
-    : switch_case EQUAL_ARROW capture_opt prong_body      { $$ = node("Prong", {$1, $3, $4}); }
+    : switch_case EQUAL_ARROW capture_opt prong_body
     | KW_INLINE switch_case EQUAL_ARROW capture_opt prong_body
-                                                          { $$ = node("Prong", {new Node("Keyword: inline"), $2, $4, $5}); }
     ;
 
 switch_case
-    : KW_ELSE                                             { $$ = node("Cases", {new Node("Keyword: else")}); }
+    : KW_ELSE
     | switch_items
     | switch_items COMMA
     ;
 
 switch_items
-    : switch_item                                         { $$ = node("Cases", {$1}); }
-    | switch_items COMMA switch_item                      { $$ = add($1, $3); }
+    : switch_item
+    | switch_items COMMA switch_item
     ;
 
 switch_item
     : plain_expr
-    | plain_expr ELLIPSIS3 expr                           { $$ = node("Range", {$1, $3}); }
+    | plain_expr ELLIPSIS3 expr
     ;
 
 prong_body
     : full_expr
-    | expr assign_op full_expr                            { $$ = node(std::string("Assignment: ") + $2, {$1, $3}); }
+    | expr assign_op full_expr
     ;
 
     /* 'T{...}' - a value of type T */
 
 curly_expr
     : type_expr
-    | type_expr init_list                                 { $$ = prepend($2, node("Type", {$1})); }
+    | type_expr init_list
     ;
 
     /* Type operators bind looser than 'A!B': '?A!B' is '?(A!B)'. A function type takes */
@@ -712,178 +632,161 @@ curly_expr
 type_expr
     : error_union_expr
     | KW_FN LPAREN parameters RPAREN align_opt addrspace_opt linksection_opt callconv_opt return_type
-                                                          { $$ = node("Function type", {$3, $5, $6, $7, $8, $9}); }
-    | QUESTION type_expr                                  { $$ = node("Optional type", {$2}); }
-    | ASTERISK pointer_modifiers type_expr                { $$ = pointer("Pointer type: *", $2, $3); }
-    | ASTERISK_ASTERISK pointer_modifiers type_expr       { $$ = node("Pointer type: *", {pointer("Pointer type: *", $2, $3)}); }
-    | LBRACKET RBRACKET pointer_modifiers type_expr       { $$ = pointer("Slice type", $3, $4); }
+    | QUESTION type_expr
+    | ASTERISK pointer_modifiers type_expr
+    | ASTERISK_ASTERISK pointer_modifiers type_expr
+    | LBRACKET RBRACKET pointer_modifiers type_expr
     | LBRACKET COLON expr RBRACKET pointer_modifiers type_expr
-                                                          { $$ = prepend(pointer("Slice type", $5, $6), node("Sentinel", {$3})); }
     | LBRACKET ASTERISK RBRACKET pointer_modifiers type_expr
-                                                          { $$ = pointer("Pointer type: [*]", $4, $5); }
     | LBRACKET ASTERISK COLON expr RBRACKET pointer_modifiers type_expr
-                                                          { $$ = prepend(pointer("Pointer type: [*]", $6, $7), node("Sentinel", {$4})); }
-    | LBRACKET ASTERISK IDENTIFIER RBRACKET pointer_modifiers type_expr
-                                                          {
-                                                              if (*$3 != "Identifier: c") {
-                                                                  delete $3; delete $5; delete $6;
-                                                                  yyerror("syntax error, expected 'c' in '[*c]'");
-                                                                  YYERROR;
-                                                              }
-
-                                                              delete $3;
-                                                              $$ = pointer("Pointer type: [*c]", $5, $6);
-                                                          }
-    | LBRACKET expr RBRACKET type_expr                    { $$ = node("Array type", {node("Length", {$2}), $4}); }
-    | LBRACKET expr COLON expr RBRACKET type_expr         { $$ = node("Array type", {node("Length", {$2}), node("Sentinel", {$4}), $6}); }
+    | LBRACKET ASTERISK IDENTIFIER RBRACKET pointer_modifiers type_expr    /* the identifier must be c */
+    | LBRACKET expr RBRACKET type_expr
+    | LBRACKET expr COLON expr RBRACKET type_expr
     ;
 
 pointer_modifiers
-    : %empty                                              { $$ = new Node("Modifiers"); }
-    | pointer_modifiers KW_CONST                          { $$ = add($1, new Node("Keyword: const")); }
-    | pointer_modifiers KW_VOLATILE                       { $$ = add($1, new Node("Keyword: volatile")); }
-    | pointer_modifiers KW_ALLOWZERO                      { $$ = add($1, new Node("Keyword: allowzero")); }
-    | pointer_modifiers KW_ALIGN LPAREN expr RPAREN       { $$ = add($1, node("Align", {$4})); }
-    | pointer_modifiers KW_ADDRSPACE LPAREN expr RPAREN   { $$ = add($1, node("Address space", {$4})); }
+    : %empty
+    | pointer_modifiers KW_CONST
+    | pointer_modifiers KW_VOLATILE
+    | pointer_modifiers KW_ALLOWZERO
+    | pointer_modifiers KW_ALIGN LPAREN expr RPAREN
+    | pointer_modifiers KW_ADDRSPACE LPAREN expr RPAREN
     ;
 
 error_union_expr
     : suffix_expr
-    | suffix_expr BANG type_expr                          { $$ = node("Error union type", {$1, $3}); }
+    | suffix_expr BANG type_expr
     ;
 
 suffix_expr
     : primary_type_expr
-    | suffix_expr LBRACKET expr RBRACKET                  { $$ = node("Index", {$1, $3}); }
-    | suffix_expr LBRACKET expr ELLIPSIS2 RBRACKET        { $$ = node("Slice", {$1, $3}); }
-    | suffix_expr LBRACKET expr ELLIPSIS2 expr RBRACKET   { $$ = node("Slice", {$1, $3, $5}); }
+    | suffix_expr LBRACKET expr RBRACKET
+    | suffix_expr LBRACKET expr ELLIPSIS2 RBRACKET
+    | suffix_expr LBRACKET expr ELLIPSIS2 expr RBRACKET
     | suffix_expr LBRACKET expr ELLIPSIS2 expr COLON expr RBRACKET
-                                                          { $$ = node("Slice", {$1, $3, $5, node("Sentinel", {$7})}); }
-    | suffix_expr DOT name                                { $$ = node("Member access", {$1, $3}); }
-    | suffix_expr DOT_ASTERISK                            { $$ = node("Dereference", {$1}); }
-    | suffix_expr DOT_QUESTION                            { $$ = node("Optional unwrap", {$1}); }
-    | suffix_expr LPAREN arguments RPAREN                 { $$ = prepend(rename($3, "Call"), $1); }
+    | suffix_expr DOT name
+    | suffix_expr DOT_ASTERISK
+    | suffix_expr DOT_QUESTION
+    | suffix_expr LPAREN arguments RPAREN
     ;
 
 arguments
-    : %empty                                              { $$ = new Node("Arguments"); }
+    : %empty
     | argument_list comma_opt
     ;
 
 argument_list
-    : full_expr                                           { $$ = node("Arguments", {$1}); }
-    | argument_list COMMA full_expr                       { $$ = add($1, $3); }
+    : full_expr
+    | argument_list COMMA full_expr
     ;
 
 primary_type_expr
-    : INTEGER_LITERAL                                     { $$ = leaf($1); }
-    | FLOAT_LITERAL                                       { $$ = leaf($1); }
-    | CHAR_LITERAL                                        { $$ = leaf($1); }
-    | STRING_LITERAL                                      { $$ = leaf($1); }
-    | MULTILINE_STRING_LITERAL                            { $$ = leaf($1); }
-    | KW_TRUE                                             { $$ = leaf($1); }
-    | KW_FALSE                                            { $$ = leaf($1); }
-    | KW_NULL                                             { $$ = leaf($1); }
-    | KW_UNDEFINED                                        { $$ = leaf($1); }
-    | KW_UNREACHABLE                                      { $$ = new Node("Unreachable"); }
-    | IDENTIFIER %prec IDENTIFIER_OPERAND                 { $$ = leaf($1); }
-    | PRIMITIVE_TYPE                                      { $$ = leaf($1); }
-    | BUILTIN LPAREN arguments RPAREN                     { $$ = prepend(rename($3, "Builtin call"), leaf($1)); }
-    | LPAREN full_expr RPAREN                             { $$ = $2; }
-    | DOT name                                            { $$ = node("Enum literal", {$2}); }
-    | DOT init_list                                       { $$ = rename($2, "Anonymous initializer"); }
-    | KW_ERROR DOT name                                   { $$ = node("Error value", {$3}); }
-    | KW_ERROR LBRACE error_names RBRACE                  { $$ = $3; }
+    : INTEGER_LITERAL
+    | FLOAT_LITERAL
+    | CHAR_LITERAL
+    | STRING_LITERAL
+    | MULTILINE_STRING_LITERAL
+    | KW_TRUE
+    | KW_FALSE
+    | KW_NULL
+    | KW_UNDEFINED
+    | KW_UNREACHABLE
+    | IDENTIFIER %prec IDENTIFIER_OPERAND
+    | PRIMITIVE_TYPE
+    | BUILTIN LPAREN arguments RPAREN
+    | LPAREN full_expr RPAREN
+    | DOT name
+    | DOT init_list
+    | KW_ERROR DOT name
+    | KW_ERROR LBRACE error_names RBRACE
     | container_decl
     ;
 
     /* A field or declaration name. Fields may be named like primitives: 'type', 'bool', 'null' */
 
 name
-    : IDENTIFIER                                          { $$ = leaf($1); }
-    | PRIMITIVE_TYPE                                      { $$ = leaf($1); }
-    | KW_TRUE                                             { $$ = leaf($1); }
-    | KW_FALSE                                            { $$ = leaf($1); }
-    | KW_NULL                                             { $$ = leaf($1); }
-    | KW_UNDEFINED                                        { $$ = leaf($1); }
+    : IDENTIFIER
+    | PRIMITIVE_TYPE
+    | KW_TRUE
+    | KW_FALSE
+    | KW_NULL
+    | KW_UNDEFINED
     ;
 
 error_names
-    : %empty                                              { $$ = new Node("Error set"); }
+    : %empty
     | error_name_list comma_opt
     ;
 
 error_name_list
-    : IDENTIFIER                                          { $$ = node("Error set", {leaf($1)}); }
-    | error_name_list COMMA IDENTIFIER                    { $$ = add($1, leaf($3)); }
+    : IDENTIFIER
+    | error_name_list COMMA IDENTIFIER
     ;
 
 container_decl
-    : container_kind LBRACE container_members RBRACE      { $$ = concat($1, $3); }
+    : container_kind LBRACE container_members RBRACE
     | KW_EXTERN container_kind LBRACE container_members RBRACE
-                                                          { $$ = concat(prepend($2, new Node("Keyword: extern")), $4); }
     | KW_PACKED container_kind LBRACE container_members RBRACE
-                                                          { $$ = concat(prepend($2, new Node("Keyword: packed")), $4); }
     ;
 
 container_kind
-    : KW_STRUCT                                           { $$ = new Node("Struct"); }
-    | KW_STRUCT LPAREN expr RPAREN                        { $$ = node("Struct", {node("Backing type", {$3})}); }
-    | KW_OPAQUE                                           { $$ = new Node("Opaque"); }
-    | KW_ENUM                                             { $$ = new Node("Enum"); }
-    | KW_ENUM LPAREN expr RPAREN                          { $$ = node("Enum", {node("Tag type", {$3})}); }
-    | KW_UNION                                            { $$ = new Node("Union"); }
-    | KW_UNION LPAREN KW_ENUM RPAREN                      { $$ = node("Union", {new Node("Tag type: enum")}); }
-    | KW_UNION LPAREN KW_ENUM LPAREN expr RPAREN RPAREN   { $$ = node("Union", {node("Tag type: enum", {$5})}); }
-    | KW_UNION LPAREN expr RPAREN                         { $$ = node("Union", {node("Tag type", {$3})}); }
+    : KW_STRUCT
+    | KW_STRUCT LPAREN expr RPAREN
+    | KW_OPAQUE
+    | KW_ENUM
+    | KW_ENUM LPAREN expr RPAREN
+    | KW_UNION
+    | KW_UNION LPAREN KW_ENUM RPAREN
+    | KW_UNION LPAREN KW_ENUM LPAREN expr RPAREN RPAREN
+    | KW_UNION LPAREN expr RPAREN
     ;
 
 init_list
-    : LBRACE RBRACE                                       { $$ = new Node("Initializer"); }
-    | LBRACE field_inits comma_opt RBRACE                 { $$ = $2; }
-    | LBRACE init_elements comma_opt RBRACE               { $$ = $2; }
+    : LBRACE RBRACE
+    | LBRACE field_inits comma_opt RBRACE
+    | LBRACE init_elements comma_opt RBRACE
     ;
 
 field_inits
-    : field_init                                          { $$ = node("Initializer", {$1}); }
-    | field_inits COMMA field_init                        { $$ = add($1, $3); }
+    : field_init
+    | field_inits COMMA field_init
     ;
 
 field_init
-    : DOT name EQUAL full_expr                            { $$ = node("Field initializer", {$2, $4}); }
+    : DOT name EQUAL full_expr
     ;
 
 init_elements
-    : full_expr                                           { $$ = node("Initializer", {$1}); }
-    | init_elements COMMA full_expr                       { $$ = add($1, $3); }
+    : full_expr
+    | init_elements COMMA full_expr
     ;
 
     /* |x|, |*x|, |x, i| after if, while, for and switch prongs */
 
 capture_opt
-    : %empty                                              { $$ = nullptr; }
+    : %empty
     | capture
     ;
 
 capture
-    : PIPE captures comma_opt PIPE                        { $$ = $2; }
+    : PIPE captures comma_opt PIPE
     ;
 
 captures
-    : capture_item                                        { $$ = node("Capture", {$1}); }
-    | captures COMMA capture_item                         { $$ = add($1, $3); }
+    : capture_item
+    | captures COMMA capture_item
     ;
 
 capture_item
-    : IDENTIFIER                                          { $$ = leaf($1); }
-    | ASTERISK IDENTIFIER                                 { $$ = node("Pointer capture", {leaf($2)}); }
+    : IDENTIFIER
+    | ASTERISK IDENTIFIER
     ;
 
     /* |err| after catch, else and errdefer */
 
 payload_opt
-    : %empty                                              { $$ = nullptr; }
-    | PIPE IDENTIFIER PIPE                                { $$ = node("Capture", {leaf($2)}); }
+    : %empty
+    | PIPE IDENTIFIER PIPE
     ;
 
 comma_opt
@@ -892,163 +795,3 @@ comma_opt
     ;
 
 %%
-
-void yyerror(const char* message) {
-    report(yylineno, message);
-}
-
-/*! Make a node. Absent optional parts are passed as nullptr and skipped. */
-static Node* node(const std::string& label, std::initializer_list<Node*> children) {
-    Node* result = new Node(label);
-
-    for (Node* child : children) {
-        add(result, child);
-    }
-
-    return result;
-}
-
-/*! Make a leaf from a token: its label is the text the lexer prints for it. */
-static Node* leaf(std::string* text) {
-    Node* result = new Node(*text);
-    delete text;
-    return result;
-}
-
-static Node* add(Node* parent, Node* child) {
-    if (child) {
-        parent->children.push_back(child);
-    }
-
-    return parent;
-}
-
-static Node* prepend(Node* parent, Node* child) {
-    if (child) {
-        parent->children.insert(parent->children.begin(), child);
-    }
-
-    return parent;
-}
-
-static Node* rename(Node* list, const std::string& label) {
-    list->label = label;
-    return list;
-}
-
-/*! Move the children of tail to the end of list. */
-static Node* concat(Node* list, Node* tail) {
-    list->children.insert(list->children.end(), tail->children.begin(), tail->children.end());
-    tail->children.clear();
-    delete tail;
-    return list;
-}
-
-/*! Put the modifiers of a declaration (pub, extern...) first among its children. */
-static Node* modify(Node* declaration, Node* pub, Node* modifiers) {
-    declaration->children.insert(declaration->children.begin(), modifiers->children.begin(), modifiers->children.end());
-    modifiers->children.clear();
-    delete modifiers;
-    return prepend(declaration, pub);
-}
-
-/*! 'label: construct' - the label goes first among the children. */
-static Node* labeled(std::string* label, Node* construct) {
-    return prepend(construct, node("Label", {leaf(label)}));
-}
-
-static Node* binary(const char* op, Node* left, Node* right) {
-    return node(std::string("Binary operator: ") + op, {left, right});
-}
-
-/*! A pointer or slice type: its modifiers (const, align...), then the element type. */
-static Node* pointer(const std::string& label, Node* modifiers, Node* element) {
-    return add(concat(new Node(label), modifiers), element);
-}
-
-/*! Show control characters of strings and chars as escapes, to keep one node per line. */
-static std::string escape(const std::string& text) {
-    std::string result;
-
-    for (char c : text) {
-        switch (c) {
-            case '\n': result += "\\n"; break;
-            case '\r': result += "\\r"; break;
-            case '\t': result += "\\t"; break;
-            default:   result += c;
-        }
-    }
-
-    return result;
-}
-
-static void print_tree(const Node* node, int depth) {
-    std::cout << std::string(2 * depth, ' ') << escape(node->label) << '\n';
-
-    for (const Node* child : node->children) {
-        print_tree(child, depth + 1);
-    }
-}
-
-/*! Print a node and its subtree as DOT statements.
- *  \return the number of the node, used in the edges.
- */
-static int print_dot(const Node* node, int& count) {
-    int id = count++;
-    std::string label;
-
-    for (char c : escape(node->label)) {
-        if (c == '"' || c == '\\') label += '\\';
-        label += c;
-    }
-
-    std::cout << "    node" << id << " [label=\"" << label << "\"];\n";
-
-    for (const Node* child : node->children) {
-        int child_id = print_dot(child, count);
-        std::cout << "    node" << id << " -> node" << child_id << ";\n";
-    }
-
-    return id;
-}
-
-int main(int argc, char* argv[]) {
-    extern FILE* yyin;
-    extern bool print_tokens;
-    extern int error_count;
-
-    std::string mode = argc == 3 ? argv[1] : "";
-
-    if ((argc != 2 && argc != 3) || (argc == 3 && mode != "--tokens" && mode != "--dot")) {
-        std::cerr << "Usage: " << argv[0] << " [--tokens | --dot] <source file>\n";
-        return 1;
-    }
-
-    yyin = fopen(argv[argc - 1], "r");
-
-    if (!yyin) {
-        std::cout << "File was not found!\n";
-        return 1;
-    }
-
-    if (mode == "--tokens") {
-        print_tokens = true;
-
-        for (yylval.text = nullptr; yylex() != 0; yylval.text = nullptr) {
-            delete yylval.text;
-        }
-    } else if (yyparse() == 0 && error_count == 0) {
-        if (mode == "--dot") {
-            int count = 0;
-            std::cout << "digraph G {\n";
-            print_dot(tree, count);
-            std::cout << "}\n";
-        } else {
-            print_tree(tree, 0);
-        }
-    }
-
-    delete tree;
-    fclose(yyin);
-    return error_count == 0 ? 0 : 1;
-}
